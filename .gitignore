@@ -1,0 +1,63 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# Project Data
+data/intermediate/*
+data/temp/*
+data/targets/*
+!data/targets/example_targets.txt
+data/screenshots/*
+data/sessions/*
+
+# Databases
+*.sqlite
+*.sqlite3
+*.db
+
+# Reports
+reports/html/*
+reports/pdf/*
+reports/csv/*
+reports/txt/*
+reports/json/*
+!reports/**/.gitkeep
+
+# Logs
+logs/*.log
+logs/*.log.*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+*.bak
+*.tmp
+
+# Sensitive
+*.pem
+*.key
+*.crt
+credentials.txt
+config.local.json
+
+# Django (future)
+web_viewer/staticfiles/
+web_viewer/media/

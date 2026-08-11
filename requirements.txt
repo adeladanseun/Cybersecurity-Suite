@@ -1,0 +1,34 @@
+# CyberSecurity Suite - Python Dependencies
+# Phase 1: Core Framework (no external dependencies required)
+# All core modules use Python standard library only
+
+# ============================================
+# Phase 2+ Dependencies (install when needed)
+# ============================================
+
+# Network Scanning
+# python-nmap==0.7.1
+# python-whois==0.8.0
+
+# DNS Operations
+# dnspython==2.4.2
+
+# Web Operations
+# requests==2.31.0
+# beautifulsoup4==4.12.2
+# lxml==4.9.3
+
+# Reporting
+# jinja2==3.1.2
+# markdown==3.5.1
+# weasyprint==60.0
+# reportlab==4.0.7
+# matplotlib==3.8.2
+# pandas==2.1.4
+
+# CLI Enhancement
+# rich==13.7.0
+# pyfiglet==1.0.2
+# colorama==0.4.6
+# click==8.1.7
+# prompt_toolkit==3.0.43

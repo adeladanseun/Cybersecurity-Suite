@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block title %}Report Templates - CyberSecurity Suite{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1>
+                <i class="fas fa-file-invoice me-2"></i>Report Templates
+            </h1>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{% url 'reports:template_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i>New Template
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        {% for template in templates %}
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">{{ template.name }}</h5>
+                </div>
+                <div class="card-body">
+                    <span class="badge bg-info mb-3">{{ template.get_template_type_display }}</span>
+                    <p class="text-muted">{{ template.description|truncatewords:30 }}</p>
+                    <p class="text-muted">
+                        <small>Created by: {{ template.created_by.username|default:"System" }}</small><br>
+                        <small>Created: {{ template.created_at|date:"Y-m-d" }}</small>
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="text-center text-muted py-5">
+                <i class="fas fa-file-invoice fa-4x mb-3"></i>
+                <p class="lead">No templates yet</p>
+                <a href="{% url 'reports:template_create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>Create Template
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

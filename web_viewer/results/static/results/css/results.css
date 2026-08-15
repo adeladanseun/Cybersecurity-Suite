@@ -1,0 +1,55 @@
+/* Results viewing styles */
+
+.badge.bg-critical {
+    background-color: #dc3545;
+}
+
+.badge.bg-high {
+    background-color: #ffc107;
+    color: #000;
+}
+
+.badge.bg-medium {
+    background-color: #007bff;
+}
+
+.badge.bg-low {
+    background-color: #6c757d;
+}
+
+.badge.bg-info {
+    background-color: #17a2b8;
+}
+
+.badge.bg-open {
+    background-color: #dc3545;
+}
+
+.badge.bg-in_progress {
+    background-color: #ffc107;
+    color: #000;
+}
+
+.badge.bg-resolved {
+    background-color: #28a745;
+}
+
+.badge.bg-false_positive {
+    background-color: #6c757d;
+}
+
+.badge.bg-accepted {
+    background-color: #17a2b8;
+}
+
+pre {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+code {
+    font-size: 0.9em;
+}

@@ -1,0 +1,50 @@
+/* Scan management styles */
+
+.progress {
+    height: 25px;
+    border-radius: 15px;
+}
+
+.progress-bar {
+    transition: width 0.5s ease;
+}
+
+.badge.bg-pending {
+    background-color: #ffc107;
+    color: #000;
+}
+
+.badge.bg-running {
+    background-color: #007bff;
+    animation: pulse 2s infinite;
+}
+
+.badge.bg-completed {
+    background-color: #28a745;
+}
+
+.badge.bg-failed {
+    background-color: #dc3545;
+}
+
+.badge.bg-cancelled {
+    background-color: #6c757d;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.6; }
+    100% { opacity: 1; }
+}
+
+.scan-active {
+    border-left: 4px solid #007bff;
+}
+
+.scan-completed {
+    border-left: 4px solid #28a745;
+}
+
+.scan-failed {
+    border-left: 4px solid #dc3545;
+}

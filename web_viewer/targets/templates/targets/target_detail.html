@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ target.name }} - CyberSecurity Suite{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1>{{ target.name }}</h1>
+            <p class="text-muted">
+                <code>{{ target.address }}</code>
+                <span class="badge bg-info ms-2">{{ target.get_type_display }}</span>
+            </p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'targets:edit' target.id %}" class="btn btn-outline-secondary">
+                <i class="fas fa-edit me-1"></i>Edit
+            </a>
+            <a href="{% url 'targets:delete' target.id %}" class="btn btn-outline-danger"
+               onclick="return confirmAction('Delete this target?')">
+                <i class="fas fa-trash me-1"></i>Delete
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-4">
+            <!-- Target Info -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Information</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Priority:</strong> 
+                        {% if target.priority == 'critical' %}
+                            <span class="badge bg-danger">Critical</span>
+                        {% elif target.priority == 'high' %}
+                            <span class="badge bg-warning">High</span>
+                        {% elif target.priority == 'medium' %}
+                            <span class="badge bg-primary">Medium</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Low</span>
+                        {% endif %}
+                    </p>
+                    <p><strong>Status:</strong> 
+                        {% if target.is_active %}
+                            <span class="badge bg-success">Active</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                        {% endif %}
+                    </p>
+                    <p><strong>Created:</strong> {{ target.created_at|date:"Y-m-d H:i" }}</p>
+                    <p><strong>Last Scanned:</strong> 
+                        {% if target.last_scanned %}
+                            {{ target.last_scanned|date:"Y-m-d H:i" }}
+                        {% else %}
+                            Never
+                        {% endif %}
+                    </p>
+                    {% if target.description %}
+                        <hr>
+                        <p><strong>Description:</strong></p>
+                        <p>{{ target.description }}</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Groups -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-folder me-2"></i>Groups</h5>
+                </div>
+                <div class="card-body">
+                    {% for group in groups %}
+                        <span class="badge bg-secondary me-1">{{ group.name }}</span>
+                    {% empty %}
+                        <p class="text-muted mb-0">Not in any groups</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <!-- Recent Scans -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-radar me-2"></i>Recent Scans</h5>
+                </div>
+                <div class="card-body">
+                    {% if scans %}
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Type</th>
+                                        <th>Status</th>
+                                        <th>Started</th>
+                                        <th>Duration</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for scan in scans %}
+                                    <tr>
+                                        <td>{{ scan.scan_type }}</td>
+                                        <td>
+                                            <span class="badge bg-{{ scan.status }}">{{ scan.status }}</span>
+                                        </td>
+                                        <td>{{ scan.started_at|date:"Y-m-d H:i" }}</td>
+                                        <td>{{ scan.duration|default:"-" }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center py-4 mb-0">
+                            No scans yet. Scan functionality coming in Phase 10C.
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Notes -->
+            {% if target.notes %}
+            <div class="card shadow-sm mt-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-sticky-note me-2"></i>Notes</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">{{ target.notes|linebreaks }}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

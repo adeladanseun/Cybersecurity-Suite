@@ -3,10 +3,19 @@ Django settings for CyberSecurity Suite Web Viewer
 """
 
 import os
+import sys
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Add parent directory to Python path so Django can find core modules
+PARENT_DIR = BASE_DIR.parent
+if str(PARENT_DIR) not in sys.path:
+    sys.path.insert(0, str(PARENT_DIR))
+
+# Also add the parent directory to sys.path for all subprocesses
+os.environ['PYTHONPATH'] = f"{PARENT_DIR}:{os.environ.get('PYTHONPATH', '')}"
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-change-this-in-production')
@@ -36,6 +45,10 @@ INSTALLED_APPS = [
     'results',
     'reports',
     'vulnerabilities',
+
+    'api',
+    'notifications',
+    'dashboard',
 ]
 
 MIDDLEWARE = [
@@ -112,8 +125,12 @@ LOGIN_URL = 'accounts:login'
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'accounts:login'
 
-# Main project reports directory (read-only)
-REPORTS_DIR = BASE_DIR.parent / 'reports'
+# Main project directories
+PROJECT_ROOT = PARENT_DIR
+REPORTS_DIR = PARENT_DIR / 'reports'
+DATA_DIR = PARENT_DIR / 'data'
+TOOLS_DIR = PARENT_DIR / 'tools'
+CORE_DIR = PARENT_DIR / 'core'
 
 # Security settings
 SESSION_COOKIE_SECURE = not DEBUG

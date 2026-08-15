@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block title %}Result Detail - CyberSecurity Suite{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1>Result Detail</h1>
+            <p class="text-muted">
+                {{ result.get_result_type_display }} on {{ target.name }}
+            </p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'results:list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Back
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Info</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Type:</strong> {{ result.get_result_type_display }}</p>
+                    <p><strong>Severity:</strong> 
+                        <span class="badge bg-{{ result.severity }}">{{ result.severity|upper }}</span>
+                    </p>
+                    <p><strong>Target:</strong> {{ target.name }}</p>
+                    <p><strong>Address:</strong> <code>{{ target.address }}</code></p>
+                    <p><strong>Scan:</strong> {{ scan.get_scan_type_display }}</p>
+                    <p><strong>Created:</strong> {{ result.created_at|date:"Y-m-d H:i:s" }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-database me-2"></i>Data</h5>
+                </div>
+                <div class="card-body">
+                    <pre class="mb-0"><code>{{ data_pretty }}</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

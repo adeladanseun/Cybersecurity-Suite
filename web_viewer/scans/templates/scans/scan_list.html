@@ -1,0 +1,203 @@
+{% extends 'base.html' %}
+
+{% block title %}Scans - CyberSecurity Suite{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1>
+                <i class="fas fa-radar me-2"></i>Scans
+            </h1>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{% url 'scans:schedule_list' %}" class="btn btn-outline-secondary me-2">
+                <i class="fas fa-clock me-1"></i>Scheduled
+            </a>
+            <a href="{% url 'scans:quick' %}" class="btn btn-success me-2">
+                <i class="fas fa-bolt me-1"></i>Quick Scan
+            </a>
+            <a href="{% url 'scans:create' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i>New Scan
+            </a>
+        </div>
+    </div>
+    
+    <!-- Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white shadow-sm">
+                <div class="card-body text-center">
+                    <h3>{{ active_scans }}</h3>
+                    <p class="mb-0">Running</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white shadow-sm">
+                <div class="card-body text-center">
+                    <h3>{{ completed_scans }}</h3>
+                    <p class="mb-0">Completed</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white shadow-sm">
+                <div class="card-body text-center">
+                    <h3>{{ failed_scans }}</h3>
+                    <p class="mb-0">Failed</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white shadow-sm">
+                <div class="card-body text-center">
+                    <h3>{{ scans|length }}</h3>
+                    <p class="mb-0">Total</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <input type="text" name="search" class="form-control" placeholder="Search by target...">
+                </div>
+                <div class="col-md-3">
+                    <select name="status" class="form-select">
+                        <option value="">All Statuses</option>
+                        {% for value, label in statuses %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select name="scan_type" class="form-select">
+                        <option value="">All Types</option>
+                        {% for value, label in scan_types %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-outline-primary w-100">
+                        <i class="fas fa-filter me-1"></i>Filter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Scan List -->
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Target</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Progress</th>
+                            <th>Started</th>
+                            <th>Duration</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for scan in scans %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'scans:detail' scan.id %}">{{ scan.target.name }}</a>
+                                <br>
+                                <small class="text-muted">{{ scan.target.address }}</small>
+                            </td>
+                            <td>{{ scan.get_scan_type_display }}</td>
+                            <td>
+                                {% if scan.status == 'completed' %}
+                                    <span class="badge bg-success">Completed</span>
+                                {% elif scan.status == 'running' %}
+                                    <span class="badge bg-primary">Running</span>
+                                {% elif scan.status == 'failed' %}
+                                    <span class="badge bg-danger">Failed</span>
+                                {% elif scan.status == 'cancelled' %}
+                                    <span class="badge bg-secondary">Cancelled</span>
+                                {% else %}
+                                    <span class="badge bg-warning">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if scan.is_active %}
+                                    <div class="progress" style="width: 100px;">
+                                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                             style="width: {{ scan.progress }}%">
+                                            {{ scan.progress }}%
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ scan.started_at|date:"Y-m-d H:i"|default:"-" }}</td>
+                            <td>{{ scan.get_duration_display }}</td>
+                            <td>
+                                <a href="{% url 'scans:detail' scan.id %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% if scan.results_file %}
+                                <a href="{% url 'scans:results' scan.id %}" class="btn btn-sm btn-outline-success">
+                                    <i class="fas fa-chart-bar"></i>
+                                </a>
+                                {% endif %}
+                                {% if scan.is_active %}
+                                <a href="{% url 'scans:cancel' scan.id %}" class="btn btn-sm btn-outline-danger">
+                                    <i class="fas fa-stop"></i>
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">
+                                <i class="fas fa-radar fa-3x mb-3"></i>
+                                <p>No scans yet. Start your first scan!</p>
+                                <a href="{% url 'scans:quick' %}" class="btn btn-success">
+                                    <i class="fas fa-bolt me-1"></i>Quick Scan
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            {% if is_paginated %}
+            <nav>
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">&laquo;</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                    <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    </li>
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">&raquo;</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

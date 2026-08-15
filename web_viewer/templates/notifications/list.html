@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %}Notifications - CyberSecurity Suite{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1>
+                <i class="fas fa-bell me-2"></i>Notifications
+            </h1>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{% url 'notifications:mark_all_read' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-check-double me-1"></i>Mark All Read
+            </a>
+            <a href="{% url 'notifications:settings' %}" class="btn btn-outline-primary">
+                <i class="fas fa-cog me-1"></i>Settings
+            </a>
+        </div>
+    </div>
+    
+    <div class="card shadow-sm">
+        <div class="card-body">
+            {% for notification in notifications %}
+            <div class="notification-item d-flex align-items-start p-3 border-bottom {% if not notification.is_read %}bg-light{% endif %}">
+                <div class="me-3">
+                    <span class="badge {{ notification.get_priority_badge_class }}">
+                        <i class="fas fa-{{ notification.notification_type }}"></i>
+                    </span>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="d-flex justify-content-between">
+                        <strong>{{ notification.title }}</strong>
+                        {% if not notification.is_read %}
+                        <a href="{% url 'notifications:mark_read' notification.id %}" class="text-primary">
+                            <i class="fas fa-check"></i> Mark Read
+                        </a>
+                        {% endif %}
+                    </div>
+                    <p class="mb-1">{{ notification.message }}</p>
+                    <small class="text-muted">{{ notification.created_at|date:"Y-m-d H:i" }} ({{ notification.created_at|timesince }} ago)</small>
+                    
+                    {% if notification.link %}
+                    <a href="{{ notification.link }}" class="btn btn-sm btn-outline-primary mt-2">View</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center text-muted py-5">
+                <i class="fas fa-bell-slash fa-4x mb-3"></i>
+                <p class="lead">No notifications</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    {% if is_paginated %}
+    <nav class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">&laquo;</a>
+            </li>
+            {% endif %}
+            
+            {% for num in page_obj.paginator.page_range %}
+            <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+            </li>
+            {% endfor %}
+            
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}">&raquo;</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

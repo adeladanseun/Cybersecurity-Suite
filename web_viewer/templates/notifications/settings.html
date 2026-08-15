@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}Notification Settings - CyberSecurity Suite{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-cog me-2"></i>Notification Settings
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <h6 class="text-muted mb-3">Email Notifications</h6>
+                        
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="email_scan" name="email_on_scan_complete" {% if pref.email_on_scan_complete %}checked{% endif %}>
+                            <label class="form-check-label" for="email_scan">Email on scan complete</label>
+                        </div>
+                        
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="email_vuln" name="email_on_vulnerability" {% if pref.email_on_vulnerability %}checked{% endif %}>
+                            <label class="form-check-label" for="email_vuln">Email on vulnerability found</label>
+                        </div>
+                        
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="email_report" name="email_on_report" {% if pref.email_on_report %}checked{% endif %}>
+                            <label class="form-check-label" for="email_report">Email when report ready</label>
+                        </div>
+                        
+                        <h6 class="text-muted mb-3">In-App Notifications</h6>
+                        
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="notify_scan" name="notify_on_scan_complete" {% if pref.notify_on_scan_complete %}checked{% endif %}>
+                            <label class="form-check-label" for="notify_scan">Notify on scan complete</label>
+                        </div>
+                        
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="notify_fail" name="notify_on_scan_failed" {% if pref.notify_on_scan_failed %}checked{% endif %}>
+                            <label class="form-check-label" for="notify_fail">Notify on scan failure</label>
+                        </div>
+                        
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="notify_vuln" name="notify_on_vulnerability" {% if pref.notify_on_vulnerability %}checked{% endif %}>
+                            <label class="form-check-label" for="notify_vuln">Notify on vulnerability</label>
+                        </div>
+                        
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="notify_report" name="notify_on_report" {% if pref.notify_on_report %}checked{% endif %}>
+                            <label class="form-check-label" for="notify_report">Notify when report ready</label>
+                        </div>
+                        
+                        <h6 class="text-muted mb-3">Browser Notifications</h6>
+                        
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="browser_notify" name="browser_notifications" {% if pref.browser_notifications %}checked{% endif %}>
+                            <label class="form-check-label" for="browser_notify">Enable browser notifications</label>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Save Settings
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

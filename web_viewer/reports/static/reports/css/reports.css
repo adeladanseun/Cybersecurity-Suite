@@ -1,0 +1,30 @@
+/* Report styles */
+
+.badge.bg-pending {
+    background-color: #6c757d;
+}
+
+.badge.bg-generating {
+    background-color: #ffc107;
+    color: #000;
+    animation: pulse 1.5s infinite;
+}
+
+.badge.bg-completed {
+    background-color: #28a745;
+}
+
+.badge.bg-failed {
+    background-color: #dc3545;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+iframe {
+    border-radius: 5px;
+    background: white;
+}

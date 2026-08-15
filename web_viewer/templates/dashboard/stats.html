@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}Statistics - CyberSecurity Suite{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1>
+                <i class="fas fa-chart-bar me-2"></i>Statistics
+            </h1>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <!-- Targets by Type -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-bullseye me-2"></i>Targets by Type</h5>
+                </div>
+                <div class="card-body">
+                    {% for item in targets_by_type %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>{{ item.type }}</span>
+                        <span class="badge bg-info">{{ item.count }}</span>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">No data</p>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Scans by Type -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-radar me-2"></i>Scans by Type</h5>
+                </div>
+                <div class="card-body">
+                    {% for item in scans_by_type %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>{{ item.scan_type }}</span>
+                        <span class="badge bg-success">{{ item.count }}</span>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">No data</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <!-- Vulnerabilities by Severity -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Vulnerabilities by Severity</h5>
+                </div>
+                <div class="card-body">
+                    {% for item in vulns_by_severity %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>{{ item.severity|upper }}</span>
+                        <span class="badge bg-{{ item.severity }}">{{ item.count }}</span>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">No data</p>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Top Services -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-server me-2"></i>Top Affected Services</h5>
+                </div>
+                <div class="card-body">
+                    {% for service in top_services %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>{{ service.affected_service }}</span>
+                        <span class="badge bg-warning">{{ service.count }}</span>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">No data</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

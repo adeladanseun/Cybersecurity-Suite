@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Import Targets - CyberSecurity Suite{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-upload me-2"></i>Import Targets
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle me-2"></i>File Format</h6>
+                        <p class="mb-0">
+                            Upload a text file with one target per line:<br>
+                            <code>192.168.1.1</code><br>
+                            <code>example.com</code><br>
+                            <code>https://testsite.com</code><br>
+                            <code>server-name.local</code>
+                        </p>
+                        <p class="mt-2 mb-0">
+                            For CSV format:<br>
+                            <code>Name,Address</code><br>
+                            <code>Web Server,192.168.1.10</code>
+                        </p>
+                    </div>
+                    
+                    <form method="post" enctype="multipart/form-data" novalidate>
+                        {% csrf_token %}
+                        {{ form|crispy }}
+                        
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-upload me-2"></i>Import Targets
+                            </button>
+                            <a href="{% url 'targets:list' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

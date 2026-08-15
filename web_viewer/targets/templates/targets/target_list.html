@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+
+{% block title %}Targets - CyberSecurity Suite{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1>
+                <i class="fas fa-bullseye me-2"></i>Targets
+            </h1>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{% url 'targets:import' %}" class="btn btn-outline-secondary me-2">
+                <i class="fas fa-upload me-1"></i>Import
+            </a>
+            <a href="{% url 'targets:create' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i>New Target
+            </a>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <input type="text" name="search" class="form-control" 
+                           placeholder="Search targets..." value="{{ current_filters.search }}">
+                </div>
+                <div class="col-md-3">
+                    <select name="type" class="form-select">
+                        <option value="">All Types</option>
+                        {% for value, label in target_types %}
+                        <option value="{{ value }}" {% if current_filters.type == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select name="priority" class="form-select">
+                        <option value="">All Priorities</option>
+                        {% for value, label in priorities %}
+                        <option value="{{ value }}" {% if current_filters.priority == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-outline-primary w-100">
+                        <i class="fas fa-filter me-1"></i>Filter
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Target List -->
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Address</th>
+                            <th>Type</th>
+                            <th>Priority</th>
+                            <th>Last Scanned</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for target in targets %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'targets:detail' target.id %}">{{ target.name }}</a>
+                            </td>
+                            <td><code>{{ target.address }}</code></td>
+                            <td>
+                                <span class="badge bg-info">{{ target.get_type_display }}</span>
+                            </td>
+                            <td>
+                                {% if target.priority == 'critical' %}
+                                    <span class="badge bg-danger">Critical</span>
+                                {% elif target.priority == 'high' %}
+                                    <span class="badge bg-warning">High</span>
+                                {% elif target.priority == 'medium' %}
+                                    <span class="badge bg-primary">Medium</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Low</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if target.last_scanned %}
+                                    {{ target.last_scanned|date:"Y-m-d H:i" }}
+                                {% else %}
+                                    <span class="text-muted">Never</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'targets:detail' target.id %}" class="btn btn-sm btn-outline-primary" title="View">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{% url 'targets:edit' target.id %}" class="btn btn-sm btn-outline-secondary" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'targets:delete' target.id %}" class="btn btn-sm btn-outline-danger" title="Delete" 
+                                   onclick="return confirmAction('Delete this target?')">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">
+                                <i class="fas fa-inbox fa-3x mb-3"></i>
+                                <p>No targets found. Create your first target!</p>
+                                <a href="{% url 'targets:create' %}" class="btn btn-primary">
+                                    <i class="fas fa-plus me-1"></i>Add Target
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if is_paginated %}
+            <nav>
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">&laquo;</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                    <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    </li>
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">&raquo;</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

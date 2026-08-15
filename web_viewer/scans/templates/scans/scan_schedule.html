@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block title %}Scheduled Scans - CyberSecurity Suite{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1>
+                <i class="fas fa-clock me-2"></i>Scheduled Scans
+            </h1>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{% url 'scans:schedule_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i>Schedule Scan
+            </a>
+        </div>
+    </div>
+    
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Target</th>
+                            <th>Type</th>
+                            <th>Frequency</th>
+                            <th>Time</th>
+                            <th>Last Run</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for scheduled in scheduled_scans %}
+                        <tr>
+                            <td>
+                                {{ scheduled.target.name }}
+                                <br>
+                                <small class="text-muted">{{ scheduled.target.address }}</small>
+                            </td>
+                            <td>{{ scheduled.get_scan_type_display }}</td>
+                            <td>{{ scheduled.get_frequency_display }}</td>
+                            <td>{{ scheduled.schedule_time|time:"H:i" }}</td>
+                            <td>{{ scheduled.last_run|date:"Y-m-d H:i"|default:"Never" }}</td>
+                            <td>
+                                {% if scheduled.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'scans:schedule_toggle' scheduled.id %}" 
+                                   class="btn btn-sm btn-outline-{% if scheduled.is_active %}danger{% else %}success{% endif %}">
+                                    {% if scheduled.is_active %}
+                                        <i class="fas fa-pause"></i>
+                                    {% else %}
+                                        <i class="fas fa-play"></i>
+                                    {% endif %}
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">
+                                <i class="fas fa-clock fa-3x mb-3"></i>
+                                <p>No scheduled scans</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block title %}API Documentation - CyberSecurity Suite{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1>
+                <i class="fas fa-code me-2"></i>API Documentation
+            </h1>
+            <p class="text-muted">REST API endpoints for CyberSecurity Suite</p>
+        </div>
+    </div>
+    
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h5>Authentication</h5>
+            <p>All API endpoints require authentication. Use session authentication or token authentication.</p>
+            
+            <h5 class="mt-4">Available Endpoints</h5>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Endpoint</th>
+                            <th>Methods</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>/api/targets/</code></td>
+                            <td>GET, POST</td>
+                            <td>List and create targets</td>
+                        </tr>
+                        <tr>
+                            <td><code>/api/targets/{id}/</code></td>
+                            <td>GET, PUT, DELETE</td>
+                            <td>Retrieve, update, delete target</td>
+                        </tr>
+                        <tr>
+                            <td><code>/api/scans/</code></td>
+                            <td>GET, POST</td>
+                            <td>List and create scans</td>
+                        </tr>
+                        <tr>
+                            <td><code>/api/vulnerabilities/</code></td>
+                            <td>GET, POST</td>
+                            <td>List and create vulnerabilities</td>
+                        </tr>
+                        <tr>
+                            <td><code>/api/reports/</code></td>
+                            <td>GET, POST</td>
+                            <td>List and create reports</td>
+                        </tr>
+                        <tr>
+                            <td><code>/api/stats/</code></td>
+                            <td>GET</td>
+                            <td>Get overall statistics</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <h5 class="mt-4">Example Usage</h5>
+            <pre><code>curl -H "Authorization: Token YOUR_TOKEN" http://localhost:8000/api/targets/</code></pre>
+        </div>
+    </div>
+</div>
+{% endblock %}

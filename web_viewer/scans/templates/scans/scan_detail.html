@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+
+{% block title %}Scan Details - CyberSecurity Suite{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1>Scan Details</h1>
+            <p class="text-muted">
+                {{ scan.get_scan_type_display }} on 
+                <a href="{% url 'targets:detail' scan.target.id %}">{{ scan.target.name }}</a>
+            </p>
+        </div>
+        <div class="col-md-4 text-end">
+            {% if scan.results_file %}
+            <a href="{% url 'scans:results' scan.id %}" class="btn btn-success">
+                <i class="fas fa-chart-bar me-1"></i>View Results
+            </a>
+            {% endif %}
+            {% if is_active %}
+            <a href="{% url 'scans:cancel' scan.id %}" class="btn btn-danger">
+                <i class="fas fa-stop me-1"></i>Cancel
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-4">
+            <!-- Scan Info -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Information</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Status:</strong> 
+                        {% if scan.status == 'completed' %}
+                            <span class="badge bg-success">Completed</span>
+                        {% elif scan.status == 'running' %}
+                            <span class="badge bg-primary">Running</span>
+                        {% elif scan.status == 'failed' %}
+                            <span class="badge bg-danger">Failed</span>
+                        {% else %}
+                            <span class="badge bg-secondary">{{ scan.get_status_display }}</span>
+                        {% endif %}
+                    </p>
+                    <p><strong>Target:</strong> {{ scan.target.address }}</p>
+                    <p><strong>Started:</strong> {{ scan.started_at|date:"Y-m-d H:i:s"|default:"-" }}</p>
+                    <p><strong>Completed:</strong> {{ scan.completed_at|date:"Y-m-d H:i:s"|default:"-" }}</p>
+                    <p><strong>Duration:</strong> {{ scan.get_duration_display }}</p>
+                    <p><strong>Initiated By:</strong> {{ scan.initiated_by.username|default:"System" }}</p>
+                </div>
+            </div>
+            
+            <!-- Progress -->
+            {% if is_active %}
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-spinner me-2"></i>Progress</h5>
+                </div>
+                <div class="card-body">
+                    <div class="progress mb-3">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                             id="progress-bar"
+                             style="width: {{ scan.progress }}%">
+                            <span id="progress-text">{{ scan.progress }}%</span>
+                        </div>
+                    </div>
+                    <p class="text-muted mb-0" id="scan-status">Scan in progress...</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-md-8">
+            <!-- Parameters -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>Parameters</h5>
+                </div>
+                <div class="card-body">
+                    {% if scan.parameters %}
+                        <pre class="mb-0"><code>{{ scan.parameters }}</code></pre>
+                    {% else %}
+                        <p class="text-muted mb-0">Default parameters used</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Error Message -->
+            {% if scan.error_message %}
+            <div class="card shadow-sm">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Error</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-danger mb-0">{{ scan.error_message }}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if is_active %}
+<script>
+// Auto-refresh progress
+function updateProgress() {
+    fetch('{% url "scans:progress" scan.id %}')
+        .then(response => response.json())
+        .then(data => {
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+            const statusText = document.getElementById('scan-status');
+            
+            progressBar.style.width = data.progress + '%';
+            progressText.textContent = data.progress + '%';
+            
+            if (!data.is_active) {
+                statusText.textContent = 'Scan ' + data.status + '. Reloading...';
+                setTimeout(() => window.location.reload(), 2000);
+            }
+        });
+}
+
+// Update every 3 seconds
+setInterval(updateProgress, 3000);
+</script>
+{% endif %}
+{% endblock %}

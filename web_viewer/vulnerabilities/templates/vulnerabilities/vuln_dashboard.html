@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+{% block title %}Vulnerability Dashboard - CyberSecurity Suite{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1>
+                <i class="fas fa-chart-pie me-2"></i>Vulnerability Dashboard
+            </h1>
+        </div>
+    </div>
+    
+    <!-- Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-danger text-white shadow-sm">
+                <div class="card-body text-center">
+                    <h3>{{ total_vulns }}</h3>
+                    <p class="mb-0">Total</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white shadow-sm">
+                <div class="card-body text-center">
+                    <h3>{{ critical_vulns }}</h3>
+                    <p class="mb-0">Critical</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-primary text-white shadow-sm">
+                <div class="card-body text-center">
+                    <h3>{{ high_vulns }}</h3>
+                    <p class="mb-0">High</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white shadow-sm">
+                <div class="card-body text-center">
+                    <h3>{{ open_vulns }}</h3>
+                    <p class="mb-0">Open</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <!-- Severity Distribution -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Severity Distribution</h5>
+                </div>
+                <div class="card-body">
+                    {% for item in severity_counts %}
+                    <div class="mb-3">
+                        <label>{{ item.severity|upper }}</label>
+                        <div class="progress">
+                            <div class="progress-bar bg-{{ item.severity }}" style="width: {{ item.count|floatformat:0 }}%">
+                                {{ item.count }}
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">No data</p>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Priority Distribution -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-sort-amount-down me-2"></i>Priority Distribution</h5>
+                </div>
+                <div class="card-body">
+                    {% for item in priority_counts %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>{{ item.priority }}</span>
+                        <span class="badge bg-secondary">{{ item.count }}</span>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">No data</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <!-- Recent Vulnerabilities -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Recent Vulnerabilities</h5>
+                </div>
+                <div class="card-body">
+                    {% for vuln in recent_vulns %}
+                    <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
+                        <div>
+                            <a href="{% url 'vulnerabilities:detail' vuln.id %}">{{ vuln.title }}</a>
+                            <br>
+                            <small class="text-muted">{{ vuln.created_at|date:"Y-m-d H:i" }}</small>
+                        </div>
+                        <span class="badge {{ vuln.get_severity_badge_class }}">{{ vuln.severity|upper }}</span>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">No vulnerabilities</p>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Most Affected Services -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-server me-2"></i>Most Affected Services</h5>
+                </div>
+                <div class="card-body">
+                    {% for service in affected_services %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>{{ service.affected_service }}</span>
+                        <span class="badge bg-info">{{ service.count }}</span>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">No data</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

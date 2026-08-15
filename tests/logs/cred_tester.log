@@ -1,0 +1,15 @@
+2026-08-14 23:38:00 - cred_tester - WARNING - hydra not found. Some features disabled.
+2026-08-14 23:38:00 - cred_tester - WARNING - Install with: sudo apt install hydra
+2026-08-14 23:38:00 - cred_tester - WARNING - hydra not found. Some features disabled.
+2026-08-14 23:38:00 - cred_tester - WARNING - Install with: sudo apt install hydra
+2026-08-14 23:38:00 - cred_tester - WARNING - hydra not found. Some features disabled.
+2026-08-14 23:38:00 - cred_tester - WARNING - Install with: sudo apt install hydra
+2026-08-14 23:38:00 - cred_tester - WARNING - hydra not found. Some features disabled.
+2026-08-14 23:38:00 - cred_tester - WARNING - Install with: sudo apt install hydra
+2026-08-14 23:38:00 - cred_tester - WARNING - hydra not found. Some features disabled.
+2026-08-14 23:38:00 - cred_tester - WARNING - Install with: sudo apt install hydra
+2026-08-14 23:38:00 - cred_tester - INFO - Testing ssh on 127.0.0.1:22
+2026-08-14 23:38:00 - cred_tester - INFO - Testing 15 credentials against 127.0.0.1 (ssh)
+2026-08-14 23:38:00 - cred_tester - INFO - Starting cred_tester_ssh scan on target: 127.0.0.1
+2026-08-14 23:38:00 - cred_tester - WARNING - paramiko not installed for SSH testing
+2026-08-14 23:38:00 - cred_tester - INFO - Completed cred_tester_ssh scan on 127.0.0.1 in 0.00s

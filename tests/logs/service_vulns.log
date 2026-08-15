@@ -1,0 +1,15 @@
+2026-08-14 23:30:13 - service_vulns - WARNING - VULNERABILITY: CVE-2021-41773 - Apache 2.4.49 (CRITICAL)
+2026-08-14 23:30:13 - service_vulns - INFO - Checking services for vulnerabilities...
+2026-08-14 23:30:13 - service_vulns - WARNING - VULNERABILITY: CVE-2021-41773 - Apache 2.4.49 (CRITICAL)
+2026-08-14 23:30:13 - service_vulns - WARNING - VULNERABILITY: CVE-2021-41773 - Apache 2.4.49 (CRITICAL)
+2026-08-14 23:30:14 - service_vulns - INFO - Vulnerability check complete: 2 found
+2026-08-14 23:30:55 - service_vulns - WARNING - VULNERABILITY: CVE-2021-41773 - Apache 2.4.49 (CRITICAL)
+2026-08-14 23:30:55 - service_vulns - INFO - Checking services for vulnerabilities...
+2026-08-14 23:30:55 - service_vulns - WARNING - VULNERABILITY: CVE-2021-41773 - Apache 2.4.49 (CRITICAL)
+2026-08-14 23:30:55 - service_vulns - WARNING - VULNERABILITY: CVE-2021-41773 - Apache 2.4.49 (CRITICAL)
+2026-08-14 23:30:55 - service_vulns - INFO - Vulnerability check complete: 2 found
+2026-08-14 23:31:34 - service_vulns - WARNING - VULNERABILITY: CVE-2021-41773 - Apache 2.4.49 (CRITICAL)
+2026-08-14 23:31:34 - service_vulns - INFO - Checking services for vulnerabilities...
+2026-08-14 23:31:34 - service_vulns - WARNING - VULNERABILITY: CVE-2021-41773 - Apache 2.4.49 (CRITICAL)
+2026-08-14 23:31:34 - service_vulns - WARNING - VULNERABILITY: CVE-2021-41773 - Apache 2.4.49 (CRITICAL)
+2026-08-14 23:31:34 - service_vulns - INFO - Vulnerability check complete: 2 found

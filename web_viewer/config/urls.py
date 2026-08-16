@@ -9,21 +9,22 @@ from django.conf.urls.static import static
 from django.views.generic import RedirectView
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    
+    path("admin/", admin.site.urls),
     # Authentication
-    path('accounts/', include('accounts.urls')),
-    
+    path("accounts/", include("accounts.urls")),
     # Dashboard
-    path('', RedirectView.as_view(pattern_name='dashboard', permanent=False)),
-    path('dashboard/', lambda request: __import__('django.shortcuts').shortcuts.render(request, 'dashboard.html'), name='dashboard'),
-    
-    # Future apps (uncomment in later phases)
-    # path('targets/', include('targets.urls')),
-    # path('scans/', include('scans.urls')),
-    # path('results/', include('results.urls')),
-    # path('reports/', include('reports.urls')),
-    # path('vulnerabilities/', include('vulnerabilities.urls')),
+    path("", RedirectView.as_view(pattern_name="dashboard:index", permanent=False)),
+    path("dashboard/", include("dashboard.urls")),
+    # Main apps
+    path("targets/", include("targets.urls")),
+    path("scans/", include("scans.urls")),
+    path("results/", include("results.urls")),
+    path("reports/", include("reports.urls")),
+    path("vulnerabilities/", include("vulnerabilities.urls")),
+    # Notifications
+    path("notifications/", include("notifications.urls")),
+    # API
+    path("api/", include("api.urls")),
 ]
 
 # Serve media files in development

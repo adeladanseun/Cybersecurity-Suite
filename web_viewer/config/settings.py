@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     # Third party apps
     'crispy_forms',
     'crispy_bootstrap5',
+    'rest_framework',
     
     # Local apps
     'accounts',
@@ -122,7 +123,7 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 # Authentication
 LOGIN_URL = 'accounts:login'
-LOGIN_REDIRECT_URL = 'dashboard'
+LOGIN_REDIRECT_URL = 'dashboard:index'
 LOGOUT_REDIRECT_URL = 'accounts:login'
 
 # Main project directories

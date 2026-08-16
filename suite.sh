@@ -39,10 +39,15 @@ show_help() {
 case "$1" in
     scan)
         shift
+        # Check if quick or full scan requested
         if [[ "$*" == *"--quick"* ]]; then
-            bash scripts/quick_scan.sh "$@"
+            # Remove --quick from arguments
+            args="${*//--quick/}"
+            bash scripts/quick_scan.sh $args
         elif [[ "$*" == *"--full"* ]]; then
-            bash scripts/full_audit.sh "$@"
+            # Remove --full from arguments
+            args="${*//--full/}"
+            bash scripts/full_audit.sh $args
         else
             bash scripts/quick_scan.sh "$@"
         fi

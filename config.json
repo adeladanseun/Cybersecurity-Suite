@@ -1,0 +1,62 @@
+{
+  "version": "1.0.0",
+  "project_name": "CyberSecurity Suite",
+  "paths": {
+    "data_dir": "./data",
+    "reports_dir": "./reports",
+    "logs_dir": "./logs",
+    "wordlists_dir": "./data/wordlists",
+    "databases_dir": "./data/databases",
+    "temp_dir": "./data/temp",
+    "screenshots_dir": "./data/screenshots"
+  },
+  "scan_defaults": {
+    "timing": "T4",
+    "timeout": 300,
+    "max_threads": 5,
+    "default_ports": "top-1000",
+    "ping_scan_first": true,
+    "service_detection": true
+  },
+  "reporting": {
+    "default_formats": [
+      "json",
+      "html",
+      "csv"
+    ],
+    "include_executive_summary": true,
+    "include_remediation": true,
+    "company_name": "Security Audit",
+    "report_logo": ""
+  },
+  "notifications": {
+    "beep_on_complete": true,
+    "beep_on_finding": true,
+    "beep_on_error": true,
+    "beep_patterns": {
+      "complete": "complete",
+      "major": "major",
+      "finding": "standard",
+      "error": "error"
+    }
+  },
+  "tools": {
+    "nmap": {
+      "path": "/usr/bin/nmap",
+      "sudo": true
+    },
+    "masscan": {
+      "path": "/usr/bin/masscan",
+      "sudo": true
+    },
+    "gobuster": {
+      "path": "/usr/bin/gobuster"
+    },
+    "hydra": {
+      "path": "/usr/bin/hydra"
+    },
+    "searchsploit": {
+      "path": "/usr/bin/searchsploit"
+    }
+  }
+}

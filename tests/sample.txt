@@ -1,0 +1,430 @@
+==========================================
+  CyberSecurity Suite - Test Runner
+  Phase 1: Core Framework
+==========================================
+
+Running all tests...
+
+[1;33m[RUNNING][0m test_validator.py
+============================================================
+VALIDATOR MODULE TESTS
+============================================================
+
+[*] Testing IP Validation...
+  ✓ IP validation passed
+
+[*] Testing Private/Public IP Detection...
+  ✓ Private/Public detection passed
+
+[*] Testing CIDR and Range Validation...
+  ✓ CIDR and range validation passed
+
+[*] Testing Domain Validation...
+  ✓ Domain validation passed
+
+[*] Testing URL Validation...
+  ✓ URL validation passed
+
+[*] Testing Hostname Validation...
+  ✓ Hostname validation passed
+
+[*] Testing Port Validation...
+  ✓ Port validation passed
+
+[*] Testing Target Classification...
+  ✓ Target classification passed
+
+[*] Testing Detailed Target Type...
+  ✓ Detailed target type passed
+
+============================================================
+✅ All validator tests passed!
+============================================================
+[0;32m[PASSED][0m  test_validator.py
+
+[1;33m[RUNNING][0m test_file_manager.py
+============================================================
+FILE MANAGER MODULE TESTS
+============================================================
+
+[*] Testing Directory Creation...
+  ✓ Directory creation passed
+
+[*] Testing File Write/Read...
+  ✓ File write/read passed
+
+[*] Testing JSON Operations...
+  ✓ JSON operations passed
+
+[*] Testing CSV Operations...
+  ✓ CSV operations passed
+
+[*] Testing Target File Reading...
+  ✓ Target file reading passed
+
+[*] Testing Filename Generation...
+  ✓ Filename generation passed
+
+[*] Testing Safe Filename...
+  ✓ Safe filename passed
+
+[*] Testing File Backup...
+  ✓ File backup passed
+
+[*] Testing Temp File Cleanup...
+  ✓ Temp file cleanup passed
+
+============================================================
+✅ All file manager tests passed!
+============================================================
+[0;32m[PASSED][0m  test_file_manager.py
+
+[1;33m[RUNNING][0m test_config.py
+============================================================
+CONFIG MODULE TESTS
+============================================================
+
+[*] Testing Default Configuration...
+  ✓ Default configuration passed
+
+[*] Testing Get/Set Configuration...
+  ✓ Get/Set configuration passed
+
+[*] Testing Scan Profiles...
+  ✓ Scan profiles passed
+
+[*] Testing Config Reset...
+  ✓ Config reset passed
+
+============================================================
+✅ All config tests passed!
+============================================================
+[0;32m[PASSED][0m  test_config.py
+
+[1;33m[RUNNING][0m test_logger.py
+============================================================
+LOGGER MODULE TESTS
+============================================================
+
+[*] Testing Logger Creation...
+  ✓ Logger creation passed
+
+[*] Testing Get Logger...
+  ✓ Get logger passed
+
+[*] Testing Logger Caching...
+  ✓ Logger caching passed
+
+============================================================
+✅ All logger tests passed!
+============================================================
+[0;32m[PASSED][0m  test_logger.py
+
+[1;33m[RUNNING][0m test_notifier.py
+============================================================
+NOTIFIER MODULE TESTS
+============================================================
+
+[*] Testing Notifier Availability...
+  Beep available: False
+  ✓ Notifier availability check passed
+
+[*] Testing Beep Patterns...
+  ✓ Beep patterns exist
+
+[*] Testing Silent Mode...
+  ✓ Silent mode passed
+
+[*] Testing Audible Beeps (you may hear sounds)...
+  ⚠ Beep tools not found, using terminal bell
+  ✓ Audible beeps executed
+
+============================================================
+✅ All notifier tests passed!
+============================================================
+[0;32m[PASSED][0m  test_notifier.py
+
+[1;33m[RUNNING][0m test_database.py
+============================================================
+DATABASE MODULE TESTS
+============================================================
+
+[*] Testing Database Creation...
+  ✓ Database creation passed
+
+[*] Testing Scan History...
+  ✓ Scan history passed
+
+[*] Testing Findings...
+  ✓ Findings operations passed
+
+[*] Testing Knowledge Base...
+  ✓ Knowledge base passed
+
+[*] Testing Database Export...
+  ✓ Database export passed
+
+============================================================
+✅ All database tests passed!
+============================================================
+[0;32m[PASSED][0m  test_database.py
+
+[1;33m[RUNNING][0m test_dns_enum.py
+============================================================
+DNS ENUMERATION MODULE TESTS
+============================================================
+
+[*] Testing Enumerator Initialization...
+  ✓ Enumerator initialized
+
+[*] Testing Real Domain Enumeration...
+  ✓ Found 5 records
+  ✓ Record types: ['NS', 'A', 'MX']
+
+[*] Testing Reverse Lookup...
+  ✓ Reverse lookup: 8.8.8.8 → ['dns.google.']
+
+[*] Testing Zone Transfer Initialization...
+  ✓ Zone transfer initialized
+
+[*] Testing Zone Transfer on Secure Domain...
+  ✓ Zone transfer correctly denied for example.com
+
+[*] Testing Subdomain Finder Initialization...
+  ✓ Subdomain finder initialized
+
+[*] Testing Subdomain Finder (small)...
+  ✓ Found 1 subdomains
+
+[*] Testing Wordlist Loading...
+  ✓ Wordlist loading passed
+
+============================================================
+✅ All DNS enumeration tests passed!
+============================================================
+[0;32m[PASSED][0m  test_dns_enum.py
+
+[1;33m[RUNNING][0m test_web_enum.py
+============================================================
+WEB ENUMERATION MODULE TESTS
+============================================================
+
+[*] Testing DirBuster Initialization...
+  ✓ DirBuster initialized
+
+[*] Testing Wordlist Loading...
+  ✓ Wordlist loading passed
+
+[*] Testing TechFingerprint Initialization...
+  ✓ TechFingerprint initialized
+
+[*] Testing ParamFuzzer Initialization...
+  ✓ ParamFuzzer initialized
+
+[*] Testing URL Construction...
+  ✓ URL construction passed
+
+[*] Testing Real Website Fingerprinting...
+  ⚠ Internet-dependent test failed: Scan failed for http://example.com using tech_fingerprint
+
+[*] Testing Real Directory Buster...
+  ✓ Tested 21 paths
+  ✓ Found 0 paths
+
+============================================================
+✅ All web enumeration tests passed!
+============================================================
+[0;32m[PASSED][0m  test_web_enum.py
+
+[1;33m[RUNNING][0m test_port_scanner.py
+============================================================
+PORT SCANNER MODULE TESTS
+============================================================
+
+[*] Testing Scanner Initialization...
+  ✓ Scanner initialized
+
+[*] Testing XML Parser...
+  ✓ XML parsing passed
+
+[*] Testing CSV Export...
+  ✓ CSV export passed
+
+[*] Testing Scan Differ - New Ports...
+  ✓ New ports detection passed
+
+[*] Testing Scan Differ - Closed Ports...
+  ✓ Closed ports detection passed
+
+[*] Testing Scan Differ - Service Changes...
+  ✓ Service change detection passed
+
+[*] Testing Risk Calculation...
+  ✓ Risk calculation passed
+
+[*] Testing Diff Report Generation...
+  ✓ Diff report generation passed
+
+[*] Testing Scanner API...
+  ✓ Scanner API complete
+
+============================================================
+✅ All port scanner tests passed!
+============================================================
+[0;32m[PASSED][0m  test_port_scanner.py
+
+[1;33m[RUNNING][0m test_vuln_checker.py
+============================================================
+VULNERABILITY CHECKER MODULE TESTS
+============================================================
+
+[*] Testing Service Checker Initialization...
+  ✓ Service checker initialized
+
+[*] Testing Vulnerable Service Detection...
+  ✓ Found 1 vulnerabilities
+  ✓ CVE: CVE-2021-41773
+
+[*] Testing Secure Service...
+  ✓ No vulnerabilities for secure version
+
+[*] Testing Scan Results Check...
+  ✓ Found 2 vulnerabilities
+
+[*] Testing CVE Lookup Initialization...
+  ✓ CVE lookup initialized
+
+[*] Testing Version Matching...
+  ✓ Version matching passed
+
+[*] Testing SSL Checker Initialization...
+  ✓ SSL checker initialized
+
+[*] Testing Summary Generation...
+  ✓ Summary generation passed
+
+============================================================
+✅ All vulnerability checker tests passed!
+============================================================
+[0;32m[PASSED][0m  test_vuln_checker.py
+
+[1;33m[RUNNING][0m test_network_discovery.py
+============================================================
+NETWORK DISCOVERY MODULE TESTS
+============================================================
+
+[*] Testing Discovery Initialization...
+['test_dir']
+  ✓ Discovery initialized
+
+[*] Testing Network Validation...
+  ✓ Network validation passed
+
+[*] Testing Network Mapper...
+['test_dir']
+  ✓ Network mapper passed
+
+[*] Testing Export Formats...
+['test_dir']
+  ✓ All export formats passed
+
+[*] Testing Gateway Detection...
+['test_dir']
+  ✓ Gateway detected: 192.168.43.1
+your gateway is  Private
+
+[*] Testing Local Network Detection...
+['test_dir']
+  Found 2 network interfaces
+  Found 2 local networks
+  ✓ Local network detection passed
+
+[*] Testing Single Host Ping...
+['test_dir']
+  ✓ Localhost ping successful
+
+============================================================
+✅ All network discovery tests passed!
+============================================================
+[0;32m[PASSED][0m  test_network_discovery.py
+
+[1;33m[RUNNING][0m test_report_builder.py
+============================================================
+REPORT BUILDER MODULE TESTS
+============================================================
+
+[*] Testing Generator Initialization...
+  ✓ Generator initialized
+
+[*] Testing HTML Generation...
+  ✓ HTML generation passed
+
+[*] Testing CSV Generation...
+  ✓ CSV generation passed
+
+[*] Testing TXT Generation...
+  ✓ TXT generation passed
+
+[*] Testing JSON Generation...
+  ✓ JSON generation passed
+
+[*] Testing Multiple Formats...
+  ✓ Multiple formats passed
+
+[*] Testing Risk Calculator...
+  ✓ Risk calculator passed
+
+[*] Testing Port Risk...
+  ✓ Port risk calculation passed
+
+[*] Testing Diff Report...
+  ✓ Diff report passed
+
+[*] Testing Generate From File...
+  ✓ Generate from file passed
+
+============================================================
+✅ All report builder tests passed!
+============================================================
+[0;32m[PASSED][0m  test_report_builder.py
+
+[1;33m[RUNNING][0m test_integration.py
+============================================================
+INTEGRATION TESTS
+============================================================
+
+[*] Testing Full Workflow Integration...
+  ✓ Target validation and classification
+  ✓ Target file I/O
+  ✓ Scan results JSON I/O
+  ✓ CSV export
+  ✓ Database operations
+  ✓ Logger integration
+  ✓ Config integration
+  ✓ Summary generation
+
+  ✅ Full workflow integration passed!
+
+[*] Testing Cross-Module Error Handling...
+  ✓ Error handling passed
+
+[*] Testing File Utilities Workflow...
+  ✓ File utilities workflow passed
+
+[*] Testing Mixed Target Processing...
+  ✓ Mixed target processing passed
+
+[*] Testing Database Scan Lifecycle...
+  ✓ Database scan lifecycle passed
+
+[*] Testing Notifier in Workflow...
+  ✓ Notifier workflow passed
+
+============================================================
+✅ All integration tests passed!
+============================================================
+[0;32m[PASSED][0m  test_integration.py
+
+==========================================
+[0;32m✅ All tests passed![0m
+==========================================

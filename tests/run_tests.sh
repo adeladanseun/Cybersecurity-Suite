@@ -78,7 +78,7 @@ fi
 
 # Run all tests if no argument or "all"
 if [ -z "$1" ] || [ "$1" = "all" ]; then
-    echo "Running all Phase 1 tests..."
+    echo "Running all tests..."
     echo ""
     
     run_test "test_validator.py" || ((FAILURES++))
@@ -87,6 +87,15 @@ if [ -z "$1" ] || [ "$1" = "all" ]; then
     run_test "test_logger.py" || ((FAILURES++))
     run_test "test_notifier.py" || ((FAILURES++))
     run_test "test_database.py" || ((FAILURES++))
+    #added code
+    run_test "test_dns_enum.py" || ((FAILURES++))
+    run_test "test_web_enum.py" || ((FAILURES++))
+    run_test "test_port_scanner.py" || ((FAILURES++))
+    run_test "test_vuln_checker.py" || ((FAILURES++))
+    run_test "test_network_discovery.py" || ((FAILURES++))
+    run_test "test_report_builder.py" || ((FAILURES++))
+    #end of addition
+
     run_test "test_integration.py" || ((FAILURES++))
 fi
 

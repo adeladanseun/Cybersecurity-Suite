@@ -83,9 +83,10 @@ beep 1
 # Generate report
 print_info "Generating reports..."
 
-SCAN_FILE="data/intermediate/scan_${TIMESTAMP}.json"
+# Find the latest scan result
+SCAN_FILE=$(ls -t data/intermediate/scan_*.json 2>/dev/null | head -1)
 
-if [ -f "$SCAN_FILE" ]; then
+if [ -n "$SCAN_FILE" ] && [ -f "$SCAN_FILE" ]; then
     python3 -m tools.report_builder.generator "$SCAN_FILE" --output "$OUTPUT_DIR" --report-type technical
     
     print_success "Reports generated"

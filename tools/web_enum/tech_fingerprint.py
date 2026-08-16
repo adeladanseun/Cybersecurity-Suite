@@ -282,20 +282,28 @@ class TechFingerprint:
 
     def _extract_version(self, headers, signature):
         """Extract version from headers."""
-        for header_name in signature.get("headers", []):
+        for header_name in signature.get('headers', []):
             if header_name in headers:
-                for pattern in signature.get("patterns", []):
+                for pattern in signature.get('patterns', []):
                     match = re.search(pattern, headers[header_name], re.IGNORECASE)
-                    if match and match.group(1):
-                        return match.group(1)
-
+                    if match:
+                        # Check if pattern has capture groups
+                        if match.groups():
+                            return match.group(1)
+                        # If no groups, return full match
+                        return match.group(0)
+        
         return None
 
     def _extract_version_from_text(self, text, pattern):
         """Extract version from text content."""
         match = re.search(pattern, text, re.IGNORECASE)
-        if match and match.group(1):
-            return match.group(1)
+        if match:
+            # Check if pattern has capture groups
+            if match.groups():
+                return match.group(1)
+            # If no groups, return full match
+            return match.group(0)
         return None
 
     def _generate_summary(self, technologies):

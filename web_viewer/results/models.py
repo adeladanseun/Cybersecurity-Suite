@@ -141,7 +141,7 @@ class VulnerabilityResult(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='assigned_vulnerabilities'
+        related_name='assigned_result_vulnerabilities'
     )
     
     notes = models.TextField(blank=True)

@@ -87,7 +87,17 @@ print_info "Generating reports..."
 SCAN_FILE=$(ls -t data/intermediate/scan_*.json 2>/dev/null | head -1)
 
 if [ -n "$SCAN_FILE" ] && [ -f "$SCAN_FILE" ]; then
-    python3 -m tools.report_builder.generator "$SCAN_FILE" --output "$OUTPUT_DIR" --report-type technical
+    #python3 -m tools.report_builder.generator "$SCAN_FILE" --output "$OUTPUT_DIR" --report-type technical
+
+    python3 -c "
+import sys
+sys.path.insert(0, '.')
+from tools.report_builder import ReportGenerator
+
+generator = ReportGenerator()
+generator.generate_from_file('$SCAN_FILE', report_type='technical', formats=['html', 'txt'])
+print('Reports generated')
+"
     
     print_success "Reports generated"
     beep 2

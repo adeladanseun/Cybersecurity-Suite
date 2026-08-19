@@ -119,10 +119,14 @@ class ScanService:
         scanner = PortScanner()
         target = scan.target.address
         
+        # Get parameters
+        params = scan.parameters or {}
+        ports = params.get('ports', 'top-1000')
+        
         scan.progress = 25
         scan.save()
         
-        results = scanner.quick_scan(target)
+        results = scanner.quick_scan(target, ports=ports)
         
         scan.progress = 75
         scan.save()
@@ -136,6 +140,10 @@ class ScanService:
         
         scanner = PortScanner()
         target = scan.target.address
+        
+        # Get parameters
+        params = scan.parameters or {}
+        ports = params.get('ports', '1-65535')
         
         scan.progress = 25
         scan.save()

@@ -61,3 +61,42 @@ config.local.json
 # Django (future)
 web_viewer/staticfiles/
 web_viewer/media/
+
+# Scan results and reports
+data/intermediate/*
+data/scans/*
+data/results/*
+reports/html/*
+reports/pdf/*
+reports/csv/*
+reports/txt/*
+reports/json/*
+!data/intermediate/.gitkeep
+!reports/**/.gitkeep
+
+# Database files
+*.sqlite
+*.sqlite3
+*.db
+
+# Django media files
+web_viewer/media/*
+web_viewer/staticfiles/*
+!web_viewer/media/.gitkeep
+
+# Target files (sensitive)
+data/targets/*
+!data/targets/example_targets.txt
+!data/targets/.gitkeep
+
+# Logs (may contain sensitive info)
+logs/*
+*.log
+!logs/.gitkeep
+
+!data/sessions/.gitkeep
+!data/temp/.gitkeep
+
+
+data/wordlists/*
+data/targets/*

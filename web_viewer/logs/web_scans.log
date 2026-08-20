@@ -1,0 +1,8 @@
+2026-08-19 21:53:04 - web_scans - INFO - Starting port_scan on https://test.example.com
+2026-08-19 21:53:05 - web_scans - ERROR - Scan failed: Required tool not found: masscan not found. Install: sudo apt install masscan
+2026-08-19 22:10:39 - web_scans - INFO - Starting ssl_scan on 127.0.0.1
+2026-08-19 22:10:39 - web_scans - INFO - Scan completed: ssl_scan on 127.0.0.1
+2026-08-19 22:22:03 - web_scans - INFO - Starting port_scan on 127.0.0.1
+2026-08-19 22:22:03 - web_scans - ERROR - Scan failed: Required tool not found: masscan not found. Install: sudo apt install masscan
+2026-08-19 22:22:53 - web_scans - INFO - Starting service_scan on 127.0.0.1
+2026-08-19 22:22:53 - web_scans - ERROR - Scan failed: Required tool not found: masscan not found. Install: sudo apt install masscan

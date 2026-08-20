@@ -1,4 +1,4 @@
-# Python
+# ========== Python ==========
 __pycache__/
 *.py[cod]
 *$py.class
@@ -10,32 +10,7 @@ build/
 venv/
 env/
 
-# Project Data
-data/intermediate/*
-data/temp/*
-data/targets/*
-!data/targets/example_targets.txt
-data/screenshots/*
-data/sessions/*
-
-# Databases
-*.sqlite
-*.sqlite3
-*.db
-
-# Reports
-reports/html/*
-reports/pdf/*
-reports/csv/*
-reports/txt/*
-reports/json/*
-!reports/**/.gitkeep
-
-# Logs
-logs/*.log
-logs/*.log.*
-
-# IDE
+# ========== IDE ==========
 .vscode/
 .idea/
 *.swp
@@ -45,58 +20,66 @@ logs/*.log.*
 .pydevproject
 .settings/
 
-# OS
+# ========== OS ==========
 .DS_Store
 Thumbs.db
 *.bak
 *.tmp
 
-# Sensitive
+# ========== Sensitive ==========
 *.pem
 *.key
 *.crt
 credentials.txt
 config.local.json
 
-# Django (future)
-web_viewer/staticfiles/
-web_viewer/media/
+# ========== Databases ==========
+*.sqlite
+*.sqlite3
+*.db
 
-# Scan results and reports
+# ========== Project Data ==========
 data/intermediate/*
 data/scans/*
 data/results/*
+data/temp/*
+data/screenshots/*
+data/sessions/*
+data/wordlists/*
+data/targets/*
+data/databases/wappalyzer/*
+data/databases/*.sqlite
+
+# Keep placeholder files
+!data/intermediate/.gitkeep
+!data/temp/.gitkeep
+!data/sessions/.gitkeep
+!data/targets/.gitkeep
+!data/targets/example_targets.txt
+!data/wordlists/.gitkeep
+
+# ========== Reports ==========
 reports/html/*
 reports/pdf/*
 reports/csv/*
 reports/txt/*
 reports/json/*
-!data/intermediate/.gitkeep
 !reports/**/.gitkeep
 
-# Database files
-*.sqlite
-*.sqlite3
-*.db
-
-# Django media files
-web_viewer/media/*
-web_viewer/staticfiles/*
-!web_viewer/media/.gitkeep
-
-# Target files (sensitive)
-data/targets/*
-!data/targets/example_targets.txt
-!data/targets/.gitkeep
-
-# Logs (may contain sensitive info)
+# ========== Logs ==========
 logs/*
 *.log
+*.log.*
 !logs/.gitkeep
 
-!data/sessions/.gitkeep
-!data/temp/.gitkeep
+# ========== Django / Web Viewer ==========
+web_viewer/staticfiles/
+web_viewer/media/*
+!web_viewer/media/.gitkeep
+web_viewer/data/
+web_viewer/db.sqlite3
 
-
-data/wordlists/*
-data/targets/*
+# ========== Nmap output files ==========
+*.nmap
+*.gnmap
+*.xml

@@ -56,7 +56,7 @@ if [ -d "data/databases/wappalyzer" ]; then
     cd "$PROJECT_DIR"
     print_success "Wappalyzer updated"
 elif check_internet; then
-    git clone --depth 1 https://github.com/AliasIO/wappalyzer.git data/databases/wappalyzer
+    git clone --depth 1 https://github.com/enthec/webappanalyzer.git data/databases/wappalyzer
     print_success "Wappalyzer downloaded"
 fi
 

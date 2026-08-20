@@ -1,0 +1,30 @@
+{
+  "host": "127.0.0.1",
+  "port": 443,
+  "timestamp": "2026-08-19T22:10:39.612078",
+  "certificate": {},
+  "protocols": {
+    "SSLv2": false,
+    "SSLv3": false,
+    "TLSv1.0": false,
+    "TLSv1.1": false,
+    "TLSv1.2": false,
+    "TLSv1.3": false
+  },
+  "vulnerabilities": [
+    {
+      "type": "self_signed",
+      "severity": "medium",
+      "title": "Self-Signed Certificate",
+      "description": "Certificate is self-signed",
+      "remediation": "Use a certificate from a trusted CA"
+    }
+  ],
+  "summary": {
+    "total_issues": 1,
+    "severity_counts": {
+      "medium": 1
+    },
+    "grade": "A"
+  }
+}

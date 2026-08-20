@@ -6,3 +6,15 @@
 2026-08-19 22:22:03 - web_scans - ERROR - Scan failed: Required tool not found: masscan not found. Install: sudo apt install masscan
 2026-08-19 22:22:53 - web_scans - INFO - Starting service_scan on 127.0.0.1
 2026-08-19 22:22:53 - web_scans - ERROR - Scan failed: Required tool not found: masscan not found. Install: sudo apt install masscan
+2026-08-20 20:22:27 - web_scans - INFO - Starting vuln_scan on 192.168.43.58
+2026-08-20 20:22:31 - web_scans - INFO - Scan completed: vuln_scan on 192.168.43.58
+2026-08-20 20:29:20 - web_scans - INFO - Starting vuln_scan on 192.168.43.58
+2026-08-20 20:30:37 - web_scans - INFO - Scan completed: vuln_scan on 192.168.43.58
+2026-08-20 21:03:16 - web_scans - INFO - Starting vuln_scan on 192.168.43.58
+2026-08-20 21:04:30 - web_scans - INFO - Scan completed: vuln_scan on 192.168.43.58
+2026-08-20 21:21:42 - web_scans - INFO - Starting vuln_scan on 192.168.43.58
+2026-08-20 21:23:02 - web_scans - INFO - Results processed: 23 ports, 35 vulnerabilities
+2026-08-20 21:23:02 - web_scans - INFO - Scan completed: vuln_scan on 192.168.43.58
+2026-08-20 21:41:38 - web_scans - INFO - Starting vuln_scan on 192.168.43.58
+2026-08-20 21:43:06 - web_scans - INFO - Results processed: 23 ports, 35 vulnerabilities
+2026-08-20 21:43:06 - web_scans - INFO - Scan completed: vuln_scan on 192.168.43.58

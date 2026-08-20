@@ -40,14 +40,25 @@ class CVELookup:
     def _load_database(self):
         """Load CVE database from files."""
         # Try loading from searchsploit
-        searchsploit_db = os.path.join("/usr/share/exploitdb", "exploits.csv")
-        if os.path.exists(searchsploit_db):
-            self._load_searchsploit(searchsploit_db)
-
+        searchsploit_paths = [
+            os.path.join('/usr/share/exploitdb', 'exploits.csv'),
+            os.path.join('/usr/share/exploitdb', 'files_exploits.csv'),
+            os.path.join('/opt/exploitdb', 'exploits.csv'),
+            os.path.join('/opt/exploitdb', 'files_exploits.csv'),
+        ]
+        
+        for searchsploit_db in searchsploit_paths:
+            if os.path.exists(searchsploit_db):
+                self._load_searchsploit(searchsploit_db)
+                break
+        
         # Try loading from local JSON database
-        local_db = os.path.join(self.database_dir, "cve_database.json")
+        local_db = os.path.join(self.database_dir, 'cve_database.json')
         if os.path.exists(local_db):
             self._load_json_database(local_db)
+        
+        # Try loading Wappalyzer data if available
+        self._load_wappalyzer()
 
     def _load_searchsploit(self, csv_file):
         """Load searchsploit database."""
@@ -56,13 +67,30 @@ class CVELookup:
                 reader = csv.DictReader(f)
 
                 for row in reader:
-                    cve = row.get("Codes", "")
-                    if cve and "CVE-" in cve:
-                        self.cve_database[cve] = {
-                            "cve": cve,
-                            "title": row.get("Title", ""),
-                            "type": row.get("Type", ""),
-                            "platform": row.get("Platform", ""),
+                    codes = row.get("codes", "")
+                    description = row.get("description", "")
+                    
+                    if codes and "CVE-" in str(codes):
+                        cve_list = str(codes).split(';')
+                        
+                        for cve in cve_list:
+                            cve = cve.strip()
+                            if cve and 'CVE-' in cve:
+                                self.cve_database[cve] = {
+                                    "cve": cve,
+                                    "title": description,
+                                    "type": row.get("type", ""),
+                                    "platform": row.get("platform", ""),
+                                    "exploit_available": True,
+                                }
+                    elif description:
+                        # Store by description for service matching
+                        key = f"EXPLOIT_{description[:50]}"
+                        self.cve_database[key] = {
+                            "cve": codes or "N/A",
+                            "title": description,
+                            "type": row.get("type", ""),
+                            "platform": row.get("platform", ""),
                             "exploit_available": True,
                         }
 
@@ -86,6 +114,45 @@ class CVELookup:
 
         except Exception as e:
             self.logger.debug(f"Failed to load JSON database: {e}")
+
+    def _load_wappalyzer(self):
+        """Load Wappalyzer technology signatures if available."""
+        wappalyzer_paths = [
+            os.path.join(self.database_dir, 'wappalyzer', 'src', 'technologies'),
+            os.path.join(self.database_dir, 'wappalyzer', 'technologies'),
+            os.path.join('/opt/exploitdb', 'wappalyzer', 'src', 'technologies'),
+        ]
+        
+        for wapp_dir in wappalyzer_paths:
+            if os.path.isdir(wapp_dir):
+                try:
+                    self._parse_wappalyzer_technologies(wapp_dir)
+                    self.logger.info(f"Loaded Wappalyzer technologies from: {wapp_dir}")
+                    break
+                except Exception as e:
+                    self.logger.debug(f"Failed to load Wappalyzer from {wapp_dir}: {e}")
+    
+    def _parse_wappalyzer_technologies(self, tech_dir):
+        """Parse Wappalyzer technology JSON files."""
+        import glob
+        
+        for json_file in glob.glob(os.path.join(tech_dir, '*.json')):
+            try:
+                with open(json_file, 'r') as f:
+                    tech_data = json.load(f)
+                
+                tech_name = os.path.splitext(os.path.basename(json_file))[0]
+                
+                self.cve_database[f"TECH_{tech_name}"] = {
+                    'cve': f"TECH_{tech_name}",
+                    'title': tech_name,
+                    'type': 'technology_signature',
+                    'platform': 'web',
+                    'exploit_available': False,
+                    'wappalyzer_data': tech_data
+                }
+            except Exception as e:
+                self.logger.debug(f"Failed to parse {json_file}: {e}")
 
     def lookup_cve(self, cve_id):
         """

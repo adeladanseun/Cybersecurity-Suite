@@ -13,6 +13,7 @@ urlpatterns = [
     path('generate/', views.ReportGenerateView.as_view(), name='generate'),
     path('<uuid:pk>/', views.ReportDetailView.as_view(), name='detail'),
     path('<uuid:pk>/download/', views.download_report, name='download'),
+    path('<uuid:pk>/preview/', views.preview_report, name='preview'),
     path('<uuid:pk>/progress/', views.report_progress, name='progress'),
     path('<uuid:pk>/export/', views.export_report_data, name='export'),
     

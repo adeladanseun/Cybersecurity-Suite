@@ -74,13 +74,19 @@
                 <div class="card-body">
                     {% if is_ready %}
                         {% if report.format == 'html' %}
-                            <iframe src="{% url 'reports:download' report.id %}" style="width: 100%; height: 500px; border: none;"></iframe>
+                            <iframe src="{% url 'reports:preview' report.id %}" style="width: 100%; height: 500px; border: none;"></iframe>
+                        {% elif report.format == 'pdf' %}
+                            <iframe src="{% url 'reports:preview' report.id %}" style="width: 100%; height: 600px; border: none;"></iframe>
+                        {% elif report.format == 'txt' %}
+                            <iframe src="{% url 'reports:preview' report.id %}" style="width: 100%; height: 500px; border: none; background: white;"></iframe>
                         {% else %}
                             <p>Preview not available for {{ report.get_format_display }} format.</p>
                             <a href="{% url 'reports:download' report.id %}" class="btn btn-primary">
                                 <i class="fas fa-download me-1"></i>Download to View
                             </a>
                         {% endif %}
+                    {% elif report.status == 'failed' %}
+                        <p class="text-danger text-center py-5">Report generation failed.</p>
                     {% elif report.status == 'generating' %}
                         <div class="text-center py-5">
                             <div class="spinner-border text-primary" role="status">

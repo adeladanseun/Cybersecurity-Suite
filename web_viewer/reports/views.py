@@ -97,20 +97,35 @@ class ReportDetailView(LoginRequiredMixin, DetailView):
 def download_report(request, pk):
     """Download report file"""
     report = get_object_or_404(Report, pk=pk)
-    
+
     if report.file and report.status == 'completed':
         # Increment download count
         report.increment_download_count()
-        
+
         # Serve file
         return FileResponse(
             report.file.open('rb'),
             as_attachment=True,
             filename=os.path.basename(report.file.name)
         )
-    
+
     messages.error(request, 'Report file not available.')
     return redirect('reports:detail', pk=report.id)
+
+
+@login_required
+def preview_report(request, pk):
+    """Preview report file inline (no download)"""
+    report = get_object_or_404(Report, pk=pk)
+
+    if report.file and report.status == "completed":
+        content_type = "application/pdf" if report.format == "pdf" else None
+        return FileResponse(
+            report.file.open("rb"), as_attachment=False, content_type=content_type
+        )
+
+    messages.error(request, "Report file not available.")
+    return redirect("reports:detail", pk=report.id)
 
 
 @login_required

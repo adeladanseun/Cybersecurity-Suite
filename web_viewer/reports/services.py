@@ -364,10 +364,13 @@ class ReportService:
             return weasyprint.HTML(string=html_content).write_pdf()
             
         except ImportError:
-            # Fall back to HTML content
             logger.warning("weasyprint not available, generating HTML instead")
+            # Change format to HTML so file extension matches content
+            report.format = 'html'
+            report.save(update_fields=['format'])
             return cls._generate_html(report, data)
     
+
     @classmethod
     def _save_report_file(cls, report, content):
         """Save report content to file"""

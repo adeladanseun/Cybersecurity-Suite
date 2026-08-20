@@ -16,6 +16,7 @@ if str(parent_dir) not in sys.path:
     sys.path.insert(0, str(parent_dir))
 
 from django.utils import timezone
+from django.conf import settings
 from core.logger import get_logger
 from core.notifier import Notifier
 
@@ -238,13 +239,13 @@ class ScanService:
     
     @classmethod
     def _save_results(cls, scan, results):
-        """Save scan results to file"""
+        """Save scan results to file AND database."""
         try:
             # Create results directory if needed
-            results_dir = os.path.join(os.getcwd(), 'media', 'scans', 'results')
+            results_dir = os.path.join(settings.MEDIA_ROOT, 'scans', 'results')
             os.makedirs(results_dir, exist_ok=True)
             
-            # Save results
+            # Save results to file
             filename = f"scan_{scan.id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
             filepath = os.path.join(results_dir, filename)
             
@@ -255,5 +256,62 @@ class ScanService:
             scan.results_file.name = f"scans/results/{filename}"
             scan.save()
             
+            # Process results into database
+            cls._process_results_to_db(scan, results)
+            
         except Exception as e:
             cls.logger.error(f"Failed to save results: {e}")
+    
+    @classmethod
+    def _process_results_to_db(cls, scan, results):
+        """Process scan results and save to database."""
+        try:
+            from results.models import PortResult, ScanResult, VulnerabilityResult
+            
+            # Process ports
+            ports = results.get('ports', [])
+            for port_data in ports:
+                if port_data.get('state') == 'open':
+                    PortResult.objects.get_or_create(
+                        scan=scan,
+                        port=port_data.get('port'),
+                        protocol=port_data.get('protocol', 'tcp'),
+                        defaults={
+                            'state': port_data.get('state', 'open'),
+                            'service': port_data.get('service', ''),
+                            'product': port_data.get('product', ''),
+                            'version': port_data.get('version', ''),
+                            'extra_info': port_data.get('extrainfo', ''),
+                        }
+                    )
+            
+            # Process summary as generic result
+            if 'summary' in results:
+                ScanResult.objects.create(
+                    scan=scan,
+                    result_type='info',
+                    severity='info',
+                    data={'summary': results['summary']}
+                )
+            
+            # Process vulnerabilities if present
+            vulns = results.get('vulnerabilities', [])
+            for vuln_data in vulns:
+                VulnerabilityResult.objects.get_or_create(
+                    scan=scan,
+                    cve_id=vuln_data.get('cve', ''),
+                    title=vuln_data.get('title', 'Unknown'),
+                    defaults={
+                        'description': vuln_data.get('description', ''),
+                        'severity': vuln_data.get('severity', 'medium'),
+                        'cvss_score': vuln_data.get('cvss_score'),
+                        'affected_service': vuln_data.get('service', ''),
+                        'port': vuln_data.get('port'),
+                        'remediation': vuln_data.get('remediation', ''),
+                    }
+                )
+            
+            cls.logger.info(f"Results processed: {len(ports)} ports, {len(vulns)} vulnerabilities")
+            
+        except Exception as e:
+            cls.logger.error(f"Failed to process results to DB: {e}")

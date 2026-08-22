@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+
+{% block title %}Compare Scans - CyberSecurity Suite{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1>
+                <i class="fas fa-code-compare me-2"></i>Compare Scans
+            </h1>
+            <p class="text-muted">Compare two scans to detect changes</p>
+        </div>
+    </div>
+    
+    <!-- Scan Selection -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-5">
+                    <label class="form-label">First Scan</label>
+                    <select name="scan1" class="form-select" required>
+                        <option value="">Select Scan</option>
+                        {% for scan in scans %}
+                        <option value="{{ scan.id }}" {% if scan1 and scan1.id == scan.id %}selected{% endif %}>
+                            {{ scan.target.name }} - {{ scan.get_scan_type_display }} ({{ scan.created_at|date:"Y-m-d H:i" }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label">Second Scan</label>
+                    <select name="scan2" class="form-select" required>
+                        <option value="">Select Scan</option>
+                        {% for scan in scans %}
+                        <option value="{{ scan.id }}" {% if scan2 and scan2.id == scan.id %}selected{% endif %}>
+                            {{ scan.target.name }} - {{ scan.get_scan_type_display }} ({{ scan.created_at|date:"Y-m-d H:i" }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-code-compare me-1"></i>Compare
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Results -->
+    {% if diff %}
+    <div class="card shadow-sm">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-chart-bar me-2"></i>Comparison Results
+            </h5>
+        </div>
+        <div class="card-body">
+            <!-- Summary -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-danger text-white text-center">
+                        <div class="card-body">
+                            <h3>{{ diff.summary.total_new }}</h3>
+                            <p class="mb-0">New Ports</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white text-center">
+                        <div class="card-body">
+                            <h3>{{ diff.summary.total_closed }}</h3>
+                            <p class="mb-0">Closed Ports</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white text-center">
+                        <div class="card-body">
+                            <h3>{{ diff.summary.total_changed }}</h3>
+                            <p class="mb-0">Changed</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white text-center">
+                        <div class="card-body">
+                            <h3>{{ diff.summary.total_unchanged }}</h3>
+                            <p class="mb-0">Unchanged</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="alert alert-{% if diff.summary.risk_level == 'critical' %}danger{% elif diff.summary.risk_level == 'high' %}warning{% elif diff.summary.risk_level == 'medium' %}info{% else %}success{% endif %}">
+                <strong>Risk Level:</strong> {{ diff.summary.risk_level|upper }}
+            </div>
+            
+            <!-- New Ports -->
+            {% if diff.new_ports %}
+            <h5 class="text-danger">🟢 New Ports Opened</h5>
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Port</th>
+                        <th>Service</th>
+                        <th>Product</th>
+                        <th>Version</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for port in diff.new_ports %}
+                    <tr>
+                        <td><strong>{{ port.port }}</strong></td>
+                        <td>{{ port.service }}</td>
+                        <td>{{ port.product|default:"-" }}</td>
+                        <td>{{ port.version|default:"-" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+            
+            <!-- Closed Ports -->
+            {% if diff.closed_ports %}
+            <h5 class="text-success">🔴 Ports Closed</h5>
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Port</th>
+                        <th>Service</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for port in diff.closed_ports %}
+                    <tr>
+                        <td><strong>{{ port.port }}</strong></td>
+                        <td>{{ port.service }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+            
+            <!-- Changed Ports -->
+            {% if diff.changed_ports %}
+            <h5 class="text-warning">🟡 Changed Ports</h5>
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Port</th>
+                        <th>Change</th>
+                        <th>From</th>
+                        <th>To</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in diff.changed_ports %}
+                        {% for change in item.changes %}
+                        <tr>
+                            <td><strong>{{ item.port }}</strong></td>
+                            <td>{{ change.field }}</td>
+                            <td>{{ change.from|default:"-" }}</td>
+                            <td>{{ change.to|default:"-" }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

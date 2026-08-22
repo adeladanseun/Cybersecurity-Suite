@@ -47,3 +47,42 @@ function formatDate(dateString) {
         minute: '2-digit'
     });
 }
+
+// Update notification count on page load
+function updateNotificationBadge() {
+    fetch('/notifications/unread-count/', {
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+    })
+    .then(response => {
+        if (response.redirected) {
+            // Not authenticated - hide badge
+            document.getElementById('notification-badge').style.display = 'none';
+            return;
+        }
+        return response.json();
+    })
+    .then(data => {
+        const badge = document.getElementById('notification-badge');
+        if (badge && data) {
+            if (data.count > 0) {
+                badge.textContent = data.count;
+                badge.style.display = 'inline-block';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+    })
+    .catch(error => {
+        console.log('Notification badge update skipped:', error);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (document.getElementById('notification-badge')) {
+        updateNotificationBadge();
+    }
+});

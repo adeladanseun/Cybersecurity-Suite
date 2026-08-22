@@ -119,3 +119,49 @@ body {
     font-size: 0.7em;
     vertical-align: middle;
 }
+
+/* Risk Score Display */
+.risk-score-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.risk-score-display.critical {
+    background: linear-gradient(135deg, #ff1744, #d50000);
+    color: white;
+}
+
+.risk-score-display.high {
+    background: linear-gradient(135deg, #ff9100, #e65100);
+    color: white;
+}
+
+.risk-score-display.medium {
+    background: linear-gradient(135deg, #ffd600, #f9a825);
+    color: #333;
+}
+
+.risk-score-display.low {
+    background: linear-gradient(135deg, #76ff03, #64dd17);
+    color: #333;
+}
+
+.risk-score-display.info {
+    background: linear-gradient(135deg, #448aff, #2962ff);
+    color: white;
+}
+
+.risk-score-number {
+    font-size: 3em;
+    font-weight: bold;
+}
+
+.risk-score-label {
+    font-size: 1.5em;
+    font-weight: bold;
+    text-transform: uppercase;
+}

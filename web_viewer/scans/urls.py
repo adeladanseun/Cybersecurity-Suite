@@ -16,6 +16,8 @@ urlpatterns = [
     path('<uuid:pk>/progress/', views.scan_progress, name='progress'),
     path('<uuid:pk>/results/', views.scan_results, name='results'),
     path('<uuid:pk>/cancel/', views.cancel_scan, name='cancel'),
+
+    path('compare/', views.compare_scans, name='compare'),
     
     # Scheduled scan URLs
     path('schedule/', views.ScheduledScanListView.as_view(), name='schedule_list'),

@@ -64,17 +64,33 @@ class ScanService:
             scan.save()
 
             # Execute appropriate scan
-            if scan.scan_type == "port_scan":
+            if scan.scan_type == 'port_scan':
                 results = cls._run_port_scan(scan)
-            elif scan.scan_type == "full_port_scan":
+            elif scan.scan_type == 'full_port_scan':
                 results = cls._run_full_port_scan(scan)
-            elif scan.scan_type == "service_scan":
+            elif scan.scan_type == 'udp_scan':
+                results = cls._run_udp_scan(scan)
+            elif scan.scan_type == 'service_scan':
                 results = cls._run_service_scan(scan)
-            elif scan.scan_type == "dns_enum":
+            elif scan.scan_type == 'dns_enum':
                 results = cls._run_dns_scan(scan)
-            elif scan.scan_type == "vuln_scan":
+            elif scan.scan_type == 'subdomain_scan':
+                results = cls._run_subdomain_scan(scan)
+            elif scan.scan_type == 'reverse_dns':
+                results = cls._run_reverse_dns(scan)
+            elif scan.scan_type == 'zone_transfer':
+                results = cls._run_zone_transfer(scan)
+            elif scan.scan_type == 'dir_buster':
+                results = cls._run_dir_buster(scan)
+            elif scan.scan_type == 'tech_fingerprint':
+                results = cls._run_tech_fingerprint(scan)
+            elif scan.scan_type == 'web_vuln_scan':
+                results = cls._run_web_vuln_scan(scan)
+            elif scan.scan_type == 'param_fuzzer':
+                results = cls._run_param_fuzzer(scan)
+            elif scan.scan_type == 'vuln_scan':
                 results = cls._run_vuln_scan(scan)
-            elif scan.scan_type == "ssl_scan":
+            elif scan.scan_type == 'ssl_scan':
                 results = cls._run_ssl_scan(scan)
             else:
                 results = cls._run_default_scan(scan)
@@ -111,7 +127,7 @@ class ScanService:
 
     @classmethod
     def _run_port_scan(cls, scan):
-        """Run quick port scan"""
+        """Run port scan with parameters"""
         from tools.port_scanner import PortScanner
 
         scanner = PortScanner()
@@ -119,52 +135,67 @@ class ScanService:
 
         params = scan.parameters or {}
         ports = params.get("ports", "top-1000")
+        timing = params.get("timing", "T4")
+        sudo = params.get("sudo", True)
 
-        scan.progress = 25
-        scan.save()
-
-        results = scanner.quick_scan(target, ports=ports)
-
-        scan.progress = 75
-        scan.save()
+        results = scanner.scan(
+            target,
+            scan_type="tcp",
+            ports=ports,
+            timing=timing,
+            service_detection=params.get("service_detection", False),
+            script_scan=params.get("script_scan", False),
+            sudo=sudo,
+        )
 
         return results
 
     @classmethod
     def _run_full_port_scan(cls, scan):
-        """Run full port scan"""
+        """Run full port scan with parameters"""
         from tools.port_scanner import PortScanner
 
         scanner = PortScanner()
         target = scan.target.address
 
-        scan.progress = 25
-        scan.save()
+        params = scan.parameters or {}
+        timing = params.get("timing", "T3")
+        sudo = params.get("sudo", True)
 
-        results = scanner.full_scan(target)
-
-        scan.progress = 75
-        scan.save()
+        results = scanner.scan(
+            target,
+            scan_type="tcp",
+            ports="1-65535",
+            timing=timing,
+            service_detection=params.get("service_detection", True),
+            script_scan=params.get("script_scan", True),
+            sudo=sudo,
+        )
 
         return results
 
     @classmethod
     def _run_service_scan(cls, scan):
-        """Run service detection scan"""
+        """Run service detection scan with parameters"""
         from tools.port_scanner import PortScanner
 
         scanner = PortScanner()
         target = scan.target.address
 
-        scan.progress = 25
-        scan.save()
+        params = scan.parameters or {}
+        ports = params.get("ports", "top-1000")
+        timing = params.get("timing", "T4")
+        sudo = params.get("sudo", True)
 
         results = scanner.scan(
-            target, scan_type="tcp", service_detection=True, script_scan=False
+            target,
+            scan_type="tcp",
+            ports=ports,
+            timing=timing,
+            service_detection=True,
+            script_scan=False,
+            sudo=sudo,
         )
-
-        scan.progress = 75
-        scan.save()
 
         return results
 
@@ -182,83 +213,92 @@ class ScanService:
 
     @classmethod
     def _run_vuln_scan(cls, scan):
-        """Run vulnerability scan"""
+        """Run vulnerability scan with parameters"""
         from tools.vuln_checker import ServiceVulnChecker, CVELookup
         from tools.port_scanner import PortScanner
-
+        
         scanner = PortScanner()
         target = scan.target.address
-
+        
+        params = scan.parameters or {}
+        ports = params.get('ports', 'top-1000')
+        timing = params.get('timing', 'T4')
+        sudo = params.get('sudo', True)
+        
         scan.progress = 20
         scan.save()
-
+        
         port_results = scanner.scan(
-            target, scan_type="tcp", service_detection=True, script_scan=False
+            target,
+            scan_type='tcp',
+            ports=ports,
+            timing=timing,
+            service_detection=True,
+            script_scan=False,
+            sudo=sudo
         )
-
+        
         scan.progress = 50
         scan.save()
-
-        # Check built-in vulnerability database
+        
         vuln_checker = ServiceVulnChecker()
         builtin_vulns = vuln_checker.check_scan_results(port_results)
-
+        
         scan.progress = 70
         scan.save()
-
-        # Check CVE lookup with searchsploit
+        
         cve_lookup = CVELookup()
         cve_vulns = cve_lookup.check_vulnerabilities(port_results)
-
+        
         scan.progress = 85
         scan.save()
-
-        # Combine results
-        combined_vulns = builtin_vulns.get("vulnerabilities", [])
-
-        existing_cves = {v.get("cve") for v in combined_vulns}
-        for cve_match in cve_vulns.get("matched_cves", []):
-            cve_info = cve_match.get("cve", {})
-            cve_id = cve_info.get("cve", "")
+        
+        combined_vulns = builtin_vulns.get('vulnerabilities', [])
+        
+        existing_cves = {v.get('cve') for v in combined_vulns}
+        for cve_match in cve_vulns.get('matched_cves', []):
+            cve_info = cve_match.get('cve', {})
+            cve_id = cve_info.get('cve', '')
             if cve_id and cve_id not in existing_cves:
-                combined_vulns.append(
-                    {
-                        "host": cve_match.get("host"),
-                        "port": cve_match.get("port"),
-                        "service": cve_match.get("service"),
-                        "cve": cve_id,
-                        "severity": "medium",
-                        "description": cve_info.get("title", ""),
-                        "exploit_available": cve_info.get("exploit_available", False),
-                        "remediation": "See CVE details for remediation",
-                    }
-                )
-
+                combined_vulns.append({
+                    'host': cve_match.get('host'),
+                    'port': cve_match.get('port'),
+                    'service': cve_match.get('service'),
+                    'cve': cve_id,
+                    'severity': 'medium',
+                    'description': cve_info.get('title', ''),
+                    'exploit_available': cve_info.get('exploit_available', False),
+                    'remediation': 'See CVE details for remediation'
+                })
+        
         return {
-            "port_scan": port_results,
-            "vulnerability_scan": {
-                "timestamp": datetime.now().isoformat(),
-                "vulnerabilities": combined_vulns,
-                "summary": {
-                    "total_vulnerabilities": len(combined_vulns),
-                    "builtin_found": len(builtin_vulns.get("vulnerabilities", [])),
-                    "cve_lookup_found": len(cve_vulns.get("matched_cves", [])),
-                },
-            },
+            'port_scan': port_results,
+            'vulnerability_scan': {
+                'timestamp': datetime.now().isoformat(),
+                'vulnerabilities': combined_vulns,
+                'summary': {
+                    'total_vulnerabilities': len(combined_vulns),
+                    'builtin_found': len(builtin_vulns.get('vulnerabilities', [])),
+                    'cve_lookup_found': len(cve_vulns.get('matched_cves', [])),
+                }
+            }
         }
 
     @classmethod
     def _run_ssl_scan(cls, scan):
-        """Run SSL/TLS scan"""
+        """Run SSL/TLS scan with parameters"""
         from tools.vuln_checker import SSLChecker
-
+        
         checker = SSLChecker()
         target = scan.target.address
-
-        results = checker.check_ssl(target)
-
+        
+        params = scan.parameters or {}
+        port = params.get('port', 443)
+        
+        results = checker.check_ssl(target, port=port)
+        
         return results
-
+    
     @classmethod
     def _run_default_scan(cls, scan):
         """Run default scan"""
@@ -268,6 +308,129 @@ class ScanService:
             "target": scan.target.address,
             "timestamp": datetime.now().isoformat(),
         }
+
+    @classmethod
+    def _run_udp_scan(cls, scan):
+        """Run UDP port scan"""
+        from tools.port_scanner import PortScanner
+        
+        scanner = PortScanner()
+        target = scan.target.address
+        
+        params = scan.parameters or {}
+        ports = params.get('ports', 'top-100')
+        
+        results = scanner.udp_scan(target, ports=ports)
+        
+        return results
+
+    @classmethod
+    def _run_subdomain_scan(cls, scan):
+        """Run subdomain discovery"""
+        from tools.dns_enum import SubdomainFinder
+        
+        finder = SubdomainFinder()
+        target = scan.target.address
+        
+        params = scan.parameters or {}
+        wordlist = params.get('wordlist')
+        
+        if wordlist:
+            results = finder.find_from_file(target, wordlist)
+        else:
+            results = finder.find_subdomains(target)
+        
+        return results
+
+    @classmethod
+    def _run_reverse_dns(cls, scan):
+        """Run reverse DNS lookup"""
+        from tools.dns_enum import DNSEnumerator
+        
+        enumerator = DNSEnumerator()
+        target = scan.target.address
+        
+        results = enumerator.reverse_lookup(target)
+        
+        return results
+
+    @classmethod
+    def _run_zone_transfer(cls, scan):
+        """Run zone transfer test"""
+        from tools.dns_enum import ZoneTransfer
+        
+        zt = ZoneTransfer()
+        target = scan.target.address
+        
+        results = zt.attempt_transfer(target)
+        
+        return results
+
+    @classmethod
+    def _run_dir_buster(cls, scan):
+        """Run directory brute force"""
+        from tools.web_enum import DirBuster
+        
+        buster = DirBuster()
+        target = scan.target.address
+        
+        params = scan.parameters or {}
+        wordlist = params.get('wordlist')
+        extensions = params.get('extensions')
+        
+        if wordlist:
+            results = buster.brute_force_with_file(target, wordlist)
+        elif extensions:
+            results = buster.brute_force(target, extensions=extensions)
+        else:
+            results = buster.brute_force(target)
+        
+        return results
+
+    @classmethod
+    def _run_tech_fingerprint(cls, scan):
+        """Run technology fingerprinting"""
+        from tools.web_enum import TechFingerprint
+        
+        fingerprint = TechFingerprint()
+        target = scan.target.address
+        
+        results = fingerprint.fingerprint(target)
+        
+        return results
+
+    @classmethod
+    def _run_web_vuln_scan(cls, scan):
+        """Run web vulnerability scan"""
+        from tools.vuln_checker import WebVulnChecker
+        
+        checker = WebVulnChecker()
+        target = scan.target.address
+        
+        params = scan.parameters or {}
+        checks = params.get('checks', ['sqli', 'xss', 'headers'])
+        
+        results = checker.check_url(target, checks=checks)
+        
+        return results
+
+    @classmethod
+    def _run_param_fuzzer(cls, scan):
+        """Run parameter discovery"""
+        from tools.web_enum import ParamFuzzer
+        
+        fuzzer = ParamFuzzer()
+        target = scan.target.address
+        
+        params = scan.parameters or {}
+        param_list = params.get('params')
+        
+        if param_list:
+            results = fuzzer.discover_params(target, params=param_list)
+        else:
+            results = fuzzer.discover_params(target)
+        
+        return results
 
     @classmethod
     def _save_results(cls, scan, results):
@@ -357,7 +520,7 @@ class ScanService:
                 )
             # Also create in vulnerability management app
             from vulnerabilities.models import Vulnerability as VulnManagement
-            
+
             for vuln_data in vulns:
                 VulnManagement.objects.get_or_create(
                     scan=scan,
@@ -373,7 +536,7 @@ class ScanService:
                         'discovered_by': scan.initiated_by,
                     }
                 )
-                
+
             cls.logger.info(
                 f"Results processed: {len(ports)} ports, {len(vulns)} vulnerabilities"
             )

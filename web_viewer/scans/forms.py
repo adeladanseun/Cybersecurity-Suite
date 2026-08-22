@@ -10,27 +10,35 @@ from .models import Scan, ScheduledScan
 
 class ScanForm(forms.ModelForm):
     """Form for creating a new scan"""
-    
+
     class Meta:
         model = Scan
-        fields = ['target', 'scan_type', 'parameters']
+        fields = ["target", "scan_type", "parameters"]
         widgets = {
-            'parameters': forms.Textarea(attrs={'rows': 3, 'placeholder': '{"ports": "1-1000"}'}),
+            "parameters": forms.Textarea(
+                attrs={
+                    "rows": 3,
+                    "placeholder": '{"ports": "80,443", "timing": "T4", "service_detection": true}',
+                }
+            ),
         }
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.helper = FormHelper()
-        self.helper.form_method = 'post'
+        self.helper.form_method = "post"
         self.helper.layout = Layout(
-            'target',
-            'scan_type',
-            'parameters',
-            Submit('submit', 'Start Scan', css_class='btn-primary'),
+            "target",
+            "scan_type",
+            "parameters",
+            Submit("submit", "Start Scan", css_class="btn-primary"),
         )
-        
-        # Make parameters optional
-        self.fields['parameters'].required = False
+
+        self.fields["parameters"].required = False
+        self.fields["parameters"].help_text = """
+            JSON parameters: {"ports": "80,443"}, {"ports": "1-1000"}, 
+            {"timing": "T4"}, {"service_detection": true}, {"script_scan": true}
+        """
 
 
 class QuickScanForm(forms.Form):

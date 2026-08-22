@@ -64,14 +64,41 @@ class ScanDetailView(LoginRequiredMixin, DetailView):
     model = Scan
     template_name = 'scans/scan_detail.html'
     context_object_name = 'scan'
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         scan = self.get_object()
         context['is_active'] = scan.is_active()
         context['results'] = self.get_scan_results(scan)
+
+        # Calculate risk score if results exist
+        if context["results"]:
+            try:
+                import sys
+                from pathlib import Path
+
+                parent_dir = Path(__file__).resolve().parent.parent.parent
+                if str(parent_dir) not in sys.path:
+                    sys.path.insert(0, str(parent_dir))
+
+                from tools.report_builder import RiskCalculator
+
+                calculator = RiskCalculator()
+
+                # Check if results have nested port_scan structure
+                risk_data = context["results"]
+                if "port_scan" in risk_data and "ports" not in risk_data:
+                    risk_data = risk_data["port_scan"]
+
+                context["risk"] = calculator.calculate_risk_score(risk_data)
+            except Exception as e:
+                print(f"Risk calculation error: {e}")
+                context["risk"] = None
+        else:
+            context["risk"] = None
+
         return context
-    
+
     def get_scan_results(self, scan):
         """Get scan results if available"""
         if scan.results_file:
@@ -221,3 +248,65 @@ def toggle_schedule(request, pk):
     messages.info(request, f'Scheduled scan {status}.')
     
     return redirect('scans:schedule_list')
+
+@login_required
+def compare_scans(request):
+    """Compare two scans"""
+    import sys
+    from pathlib import Path
+    parent_dir = Path(__file__).resolve().parent.parent.parent
+    if str(parent_dir) not in sys.path:
+        sys.path.insert(0, str(parent_dir))
+    
+    from tools.port_scanner import ScanDiffer
+    import json as json_module
+    
+    scan1 = None
+    scan2 = None
+    diff = None
+    
+    if request.GET.get('scan1') and request.GET.get('scan2'):
+        scan1 = get_object_or_404(Scan, pk=request.GET.get('scan1'))
+        scan2 = get_object_or_404(Scan, pk=request.GET.get('scan2'))
+        
+        # Load results from JSON files
+        data1 = None
+        data2 = None
+        
+        if scan1.results_file:
+            try:
+                with scan1.results_file.open('r') as f:
+                    data1 = json_module.load(f)
+            except Exception:
+                data1 = None
+        
+        if scan2.results_file:
+            try:
+                with scan2.results_file.open('r') as f:
+                    data2 = json_module.load(f)
+            except Exception:
+                data2 = None
+        
+        # Handle nested port_scan structure
+        if data1 and 'port_scan' in data1 and 'ports' not in data1:
+            data1 = data1['port_scan']
+        if data2 and 'port_scan' in data2 and 'ports' not in data2:
+            data2 = data2['port_scan']
+        
+        if data1 and data2:
+            differ = ScanDiffer()
+            diff = differ.compare_scans(data1, data2)
+    
+    context = {
+        'scans': Scan.objects.select_related('target').filter(status='completed').order_by('-created_at')[:50],
+        'scan1': scan1,
+        'scan2': scan2,
+        'diff': diff,
+    }
+    
+    return render(request, 'scans/scan_compare.html', context)
+
+
+
+
+    

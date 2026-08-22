@@ -157,7 +157,7 @@ bash scripts/health_check.sh
 from tools.port_scanner import PortScanner
 
 scanner = PortScanner()
-results = scanner.quick_scan("192.168.1.1")
+results = scanner.quick_scan("192.168.X.X")
 print(f"Found {results['summary']['total_open_ports']} open ports")
 ```
 ### Web Interface
@@ -171,8 +171,8 @@ print(f"Found {results['summary']['total_open_ports']} open ports")
 
 
 ### Testing
-## Main Project Test
 ```bash
+## Main Project Test
 # Run all tests
 python3 tests/test_validator.py
 python3 tests/test_file_manager.py
@@ -188,10 +188,9 @@ python3 tests/test_network_discovery.py
 python3 tests/test_web_enum.py
 python3 tests/test_vuln_checker.py
 python3 tests/test_exploitation.py
-```
+
 
 ## Web App Test
-```bash
 cd web_viewer
 source venv/bin/activate
 python manage.py test

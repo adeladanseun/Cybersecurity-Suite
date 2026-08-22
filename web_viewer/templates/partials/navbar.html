@@ -42,6 +42,24 @@
     </li>
     
     <li class="nav-item">
+        <a class="nav-link" href="{% url 'vulnerabilities:cve_search' %}">
+            <i class="fas fa-search me-1"></i>CVE Search
+        </a>
+    </li>
+
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'scans:compare' %}">
+            <i class="fas fa-code-compare me-1"></i>Compare
+        </a>
+    </li>
+
+    <li class="nav-item">
+        <a class="nav-link" href="{% url 'vulnerabilities:cred_check' %}">
+            <i class="fas fa-key me-1"></i>Cred Check
+        </a>
+    </li>
+
+    <li class="nav-item">
         <a class="nav-link" href="{% url 'reports:list' %}">
             <i class="fas fa-file-alt me-1"></i>Reports
         </a>
@@ -52,7 +70,7 @@
                <li class="nav-item me-2">
                 <a class="nav-link" href="{% url 'notifications:list' %}">
                 <i class="fas fa-bell me-1"></i>
-                <span class="badge bg-danger" id="notification-badge">0</span>
+                <span class="badge bg-danger" id="notification-badge" style="display: none;">0</span>
                </a>
               </li>
     

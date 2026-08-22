@@ -15,12 +15,17 @@ class Scan(models.Model):
         ('port_scan', 'Port Scan'),
         ('full_port_scan', 'Full Port Scan'),
         ('udp_scan', 'UDP Scan'),
+        ('service_scan', 'Service Detection'),
         ('dns_enum', 'DNS Enumeration'),
         ('subdomain_scan', 'Subdomain Discovery'),
-        ('web_enum', 'Web Enumeration'),
+        ('reverse_dns', 'Reverse DNS Lookup'),
+        ('zone_transfer', 'Zone Transfer Test'),
+        ('dir_buster', 'Directory Brute Force'),
+        ('tech_fingerprint', 'Technology Fingerprint'),
+        ('web_vuln_scan', 'Web Vulnerability Scan'),
+        ('param_fuzzer', 'Parameter Discovery'),
         ('vuln_scan', 'Vulnerability Scan'),
         ('ssl_scan', 'SSL/TLS Scan'),
-        ('service_scan', 'Service Detection'),
     ]
     
     STATUS_CHOICES = [

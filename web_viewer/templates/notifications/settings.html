@@ -19,17 +19,17 @@
                         <h6 class="text-muted mb-3">Email Notifications</h6>
                         
                         <div class="form-check form-switch mb-2">
-                            <input class="form-check-input" type="checkbox" id="email_scan" name="email_on_scan_complete" {% if pref.email_on_scan_complete %}checked{% endif %}>
+                            <input disabled class="form-check-input" type="checkbox" id="email_scan" name="email_on_scan_complete" {% if pref.email_on_scan_complete %}checked{% endif %}>
                             <label class="form-check-label" for="email_scan">Email on scan complete</label>
                         </div>
                         
                         <div class="form-check form-switch mb-2">
-                            <input class="form-check-input" type="checkbox" id="email_vuln" name="email_on_vulnerability" {% if pref.email_on_vulnerability %}checked{% endif %}>
+                            <input disabled class="form-check-input" type="checkbox" id="email_vuln" name="email_on_vulnerability" {% if pref.email_on_vulnerability %}checked{% endif %}>
                             <label class="form-check-label" for="email_vuln">Email on vulnerability found</label>
                         </div>
                         
                         <div class="form-check form-switch mb-3">
-                            <input class="form-check-input" type="checkbox" id="email_report" name="email_on_report" {% if pref.email_on_report %}checked{% endif %}>
+                            <input disabled class="form-check-input" type="checkbox" id="email_report" name="email_on_report" {% if pref.email_on_report %}checked{% endif %}>
                             <label class="form-check-label" for="email_report">Email when report ready</label>
                         </div>
                         

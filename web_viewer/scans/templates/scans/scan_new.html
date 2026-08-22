@@ -30,6 +30,61 @@
                     </form>
                 </div>
             </div>
+            
+            <!-- Parameter Help -->
+            <div class="card shadow-sm mt-4">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Available Parameters (JSON)</h6>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Parameter</th>
+                                <th>Example</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>ports</code></td>
+                                <td><code>"80,443,8080"</code></td>
+                                <td>Specific ports to scan</td>
+                            </tr>
+                            <tr>
+                                <td><code>ports</code></td>
+                                <td><code>"1-1000"</code></td>
+                                <td>Port range</td>
+                            </tr>
+                            <tr>
+                                <td><code>ports</code></td>
+                                <td><code>"top-1000"</code></td>
+                                <td>Top N common ports</td>
+                            </tr>
+                            <tr>
+                                <td><code>timing</code></td>
+                                <td><code>"T4"</code></td>
+                                <td>Speed T0-T5 (T0 slowest, T5 fastest)</td>
+                            </tr>
+                            <tr>
+                                <td><code>service_detection</code></td>
+                                <td><code>true</code></td>
+                                <td>Enable version detection</td>
+                            </tr>
+                            <tr>
+                                <td><code>script_scan</code></td>
+                                <td><code>true</code></td>
+                                <td>Run NSE scripts</td>
+                            </tr>
+                            <tr>
+                                <td><code>sudo</code></td>
+                                <td><code>false</code></td>
+                                <td>Disable sudo (uses TCP connect)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 </div>

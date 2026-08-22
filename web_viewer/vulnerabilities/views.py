@@ -19,49 +19,67 @@ from .forms import VulnerabilityForm, VulnerabilityStatusForm, RemediationTaskFo
 
 class VulnerabilityListView(LoginRequiredMixin, ListView):
     """List all vulnerabilities"""
+
     model = Vulnerability
-    template_name = 'vulnerabilities/vuln_list.html'
-    context_object_name = 'vulnerabilities'
+    template_name = "vulnerabilities/vuln_list.html"
+    context_object_name = "vulnerabilities"
     paginate_by = 50
-    
+
     def get_queryset(self):
-        queryset = Vulnerability.objects.select_related('scan', 'scan__target', 'assigned_to')
-        
+        queryset = Vulnerability.objects.select_related(
+            "scan", "scan__target", "assigned_to"
+        )
+
         # Filter by severity
-        severity = self.request.GET.get('severity', '')
+        severity = self.request.GET.get("severity", "")
         if severity:
             queryset = queryset.filter(severity=severity)
-        
+
         # Filter by status
-        status = self.request.GET.get('status', '')
+        status = self.request.GET.get("status", "")
         if status:
             queryset = queryset.filter(status=status)
-        
+
         # Filter by priority
-        priority = self.request.GET.get('priority', '')
+        priority = self.request.GET.get("priority", "")
         if priority:
             queryset = queryset.filter(priority=priority)
-        
+
+        # Filter by scan
+        scan_id = self.request.GET.get("scan", "")
+        if scan_id:
+            queryset = queryset.filter(scan_id=scan_id)
+
         # Search
-        search = self.request.GET.get('search', '')
+        search = self.request.GET.get("search", "")
         if search:
             queryset = queryset.filter(
-                Q(cve_id__icontains=search) |
-                Q(title__icontains=search) |
-                Q(affected_service__icontains=search)
+                Q(cve_id__icontains=search)
+                | Q(title__icontains=search)
+                | Q(affected_service__icontains=search)
             )
-        
+
         return queryset
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['total_vulns'] = Vulnerability.objects.count()
-        context['open_vulns'] = Vulnerability.objects.filter(status='open').count()
-        context['critical_vulns'] = Vulnerability.objects.filter(severity='critical').count()
-        context['resolved_vulns'] = Vulnerability.objects.filter(status='resolved').count()
-        context['severities'] = Vulnerability.SEVERITY_CHOICES
-        context['statuses'] = Vulnerability.STATUS_CHOICES
-        context['priorities'] = Vulnerability.PRIORITY_CHOICES
+        from scans.models import Scan
+
+        context["total_vulns"] = Vulnerability.objects.count()
+        context["open_vulns"] = Vulnerability.objects.filter(status="open").count()
+        context["critical_vulns"] = Vulnerability.objects.filter(
+            severity="critical"
+        ).count()
+        context["resolved_vulns"] = Vulnerability.objects.filter(
+            status="resolved"
+        ).count()
+        context["severities"] = Vulnerability.SEVERITY_CHOICES
+        context["statuses"] = Vulnerability.STATUS_CHOICES
+        context["priorities"] = Vulnerability.PRIORITY_CHOICES
+        context["scans"] = Scan.objects.select_related("target").order_by(
+            "-created_at"
+        )[:50]
+        context["current_scan"] = self.request.GET.get("scan", "")
         return context
 
 
@@ -239,27 +257,27 @@ def add_task(request, pk):
 def export_vulnerabilities(request):
     """Export vulnerabilities to CSV"""
     import csv
-    
+
     vulns = Vulnerability.objects.select_related('scan', 'scan__target', 'assigned_to')
-    
+
     # Apply filters
     severity = request.GET.get('severity', '')
     if severity:
         vulns = vulns.filter(severity=severity)
-    
+
     status = request.GET.get('status', '')
     if status:
         vulns = vulns.filter(status=status)
-    
+
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="vulnerabilities.csv"'
-    
+
     writer = csv.writer(response)
     writer.writerow([
         'CVE ID', 'Title', 'Severity', 'CVSS Score', 'Priority', 'Status',
         'Target', 'Service', 'Port', 'Assigned To', 'Created At', 'Resolved At'
     ])
-    
+
     for vuln in vulns:
         writer.writerow([
             vuln.cve_id,
@@ -275,5 +293,78 @@ def export_vulnerabilities(request):
             vuln.created_at.strftime('%Y-%m-%d %H:%M:%S'),
             vuln.resolved_at.strftime('%Y-%m-%d %H:%M:%S') if vuln.resolved_at else ''
         ])
-    
+
     return response
+
+
+@login_required
+def cve_search(request):
+    """Search CVE database"""
+    results = []
+    query = ""
+    search_type = "service"
+
+    if request.GET.get("query"):
+        query = request.GET.get("query")
+        search_type = request.GET.get("search_type", "service")
+
+        # Add parent directory to path for core modules
+        import sys
+        from pathlib import Path
+
+        parent_dir = Path(__file__).resolve().parent.parent.parent
+        if str(parent_dir) not in sys.path:
+            sys.path.insert(0, str(parent_dir))
+
+        from tools.vuln_checker import CVELookup
+
+        cve = CVELookup()
+
+        if search_type == "cve":
+            result = cve.lookup_cve(query.upper())
+            if result:
+                results = [result]
+        else:
+            results = cve.search_by_service(query)
+
+    context = {
+        "results": results,
+        "query": query,
+        "search_type": search_type,
+        "result_count": len(results),
+    }
+
+    return render(request, "vulnerabilities/cve_search.html", context)
+
+
+@login_required
+def cred_check(request):
+    """Check for default credentials on devices"""
+    import sys
+    from pathlib import Path
+
+    parent_dir = Path(__file__).resolve().parent.parent.parent
+    if str(parent_dir) not in sys.path:
+        sys.path.insert(0, str(parent_dir))
+
+    from tools.exploitation import DefaultCredChecker
+
+    result = None
+    target = ""
+    device_type = "router"
+
+    if request.GET.get("target"):
+        target = request.GET.get("target")
+        device_type = request.GET.get("device_type", "router")
+
+        checker = DefaultCredChecker()
+        result = checker.check_device(target, device_type)
+
+    context = {
+        "result": result,
+        "target": target,
+        "device_type": device_type,
+        "device_types": ["router", "camera", "printer", "nas", "switch", "firewall"],
+    }
+
+    return render(request, "vulnerabilities/cred_check.html", context)

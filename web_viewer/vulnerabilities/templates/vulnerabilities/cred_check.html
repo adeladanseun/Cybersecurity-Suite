@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}Default Credential Check - CyberSecurity Suite{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1>
+                <i class="fas fa-key me-2"></i>Default Credential Check
+            </h1>
+            <p class="text-muted">Test devices for known default credentials</p>
+        </div>
+    </div>
+    
+    <!-- Search Form -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <input type="text" name="target" class="form-control" 
+                           placeholder="Target IP or hostname" value="{{ target }}" required>
+                </div>
+                <div class="col-md-3">
+                    <select name="device_type" class="form-select">
+                        {% for dt in device_types %}
+                        <option value="{{ dt }}" {% if device_type == dt %}selected{% endif %}>{{ dt|title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search me-1"></i>Check
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Results -->
+    {% if result %}
+    <div class="card shadow-sm">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-list me-2"></i>Results for {{ target }}
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if result.default_credentials_found %}
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>{{ result.default_credentials_found|length }} default credentials found!</strong>
+            </div>
+            
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Password</th>
+                        <th>Service</th>
+                        <th>Port</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cred in result.default_credentials_found %}
+                    <tr>
+                        <td><code>{{ cred.username }}</code></td>
+                        <td><code>{{ cred.password }}</code></td>
+                        <td>{{ cred.service|default:"-" }}</td>
+                        <td>{{ cred.port|default:"-" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle me-2"></i>
+                No default credentials found on {{ target }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

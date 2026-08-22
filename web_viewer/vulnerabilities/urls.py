@@ -17,6 +17,9 @@ urlpatterns = [
     path('<uuid:pk>/update-status/', views.update_status, name='update_status'),
     path('<uuid:pk>/add-note/', views.add_note, name='add_note'),
     path('<uuid:pk>/add-task/', views.add_task, name='add_task'),
+
+    path('cve-search/', views.cve_search, name='cve_search'),
+    path('cred-check/', views.cred_check, name='cred_check'),
     
     # Export
     path('export/csv/', views.export_vulnerabilities, name='export_csv'),

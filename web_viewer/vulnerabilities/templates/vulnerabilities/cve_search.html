@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block title %}CVE Search - CyberSecurity Suite{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1>
+                <i class="fas fa-search me-2"></i>CVE Database Search
+            </h1>
+            <p class="text-muted">Search 44,000+ CVE entries from ExploitDB</p>
+        </div>
+    </div>
+    
+    <!-- Search Form -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <select name="search_type" class="form-select">
+                        <option value="service" {% if search_type == 'service' %}selected{% endif %}>Search by Service</option>
+                        <option value="cve" {% if search_type == 'cve' %}selected{% endif %}>Search by CVE ID</option>
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <input type="text" name="query" class="form-control" 
+                           placeholder="{% if search_type == 'cve' %}e.g., CVE-2021-41773{% else %}e.g., apache, vsftpd, mysql{% endif %}"
+                           value="{{ query }}" required>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search me-1"></i>Search
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Results -->
+    {% if query %}
+    <div class="card shadow-sm">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-database me-2"></i>
+                Results for "{{ query }}" ({{ result_count }} found)
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if results %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>CVE ID</th>
+                            <th>Title</th>
+                            <th>Type</th>
+                            <th>Platform</th>
+                            <th>Exploit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for result in results %}
+                        <tr>
+                            <td>
+                                {% if result.cve and result.cve != 'N/A' %}
+                                    <code>{{ result.cve }}</code>
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ result.title|truncatechars:80 }}</td>
+                            <td><span class="badge bg-info">{{ result.type|default:"Unknown" }}</span></td>
+                            <td>{{ result.platform|default:"-" }}</td>
+                            <td>
+                                {% if result.exploit_available %}
+                                    <span class="badge bg-success">Available</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">No</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center text-muted py-5">
+                <i class="fas fa-search fa-3x mb-3"></i>
+                <p>No results found for "{{ query }}"</p>
+                <small>Try a different service name or CVE ID</small>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

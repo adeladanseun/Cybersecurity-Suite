@@ -52,6 +52,45 @@
                     <p><strong>Initiated By:</strong> {{ scan.initiated_by.username|default:"System" }}</p>
                 </div>
             </div>
+
+            <!-- Risk Score -->
+            {% if risk %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Risk Assessment</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="risk-score-display {{ risk.level }}">
+                        <span class="risk-score-number">{{ risk.score }}</span>
+                        <span class="risk-score-label">{{ risk.level|upper }}</span>
+                    </div>
+                    <p class="text-muted mt-2">{{ risk.summary }}</p>
+                    
+                    {% if risk.factors %}
+                    <hr>
+                    <h6>Risk Factors</h6>
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Factor</th>
+                                <th>Details</th>
+                                <th>Score</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for factor in risk.factors %}
+                            <tr>
+                                <td>{{ factor.name }}</td>
+                                <td><small>{{ factor.description }}</small></td>
+                                <td><span class="badge bg-secondary">{{ factor.score }}</span></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
             
             <!-- Progress -->
             {% if is_active %}

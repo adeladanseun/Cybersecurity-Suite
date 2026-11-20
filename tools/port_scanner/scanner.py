@@ -10,10 +10,11 @@ import time
 import json
 from datetime import datetime
 from pathlib import Path
+import re
 
 # Add project root to path
 import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+#sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from core.file_manager import FileManager
 from core.validator import (
@@ -56,7 +57,8 @@ class PortScanner:
 
         # Tool paths
         self.nmap_path = self._find_tool("nmap")
-        self.masscan_path = self._find_tool("masscan")
+        self.masscan_path = shutil.which("masscan")          # optional, may be None
+        #self.masscan_path = self._find_tool("masscan")
 
     def _find_tool(self, tool_name):
         """Find system tool path."""
@@ -70,32 +72,30 @@ class PortScanner:
             raise ToolNotFoundError(f"{tool_name} not found. Install: sudo apt install {tool_name}")
         return tool_path
 
-    def scan(self, target, scan_type='tcp', ports=None, timing='T4', 
-             service_detection=True, script_scan=False, ping_first=True,
-             sudo=True, callback=None):
+    def _sanitize_for_filename(self, target: str) -> str:
+        """Make any target (IP, CIDR, IPv6, domain, URL) safe for a filename."""
+        try:
+            safe = self.fm.safe_filename(target)
+        except Exception:
+            safe = target
+        safe = re.sub(r'[/\\:*?"<>|\s]', '_', safe)
+        safe = safe.strip('._')
+        return safe or "target"
+
+    def scan(self, target, scan_type='tcp', ports=None, timing='T4',
+         service_detection=True, script_scan=False, ping_first=True,
+         sudo=True, callback=None):
         """
         Perform port scan on target.
-        
-        Args:
-            target: IP, CIDR, or domain to scan
-            scan_type: 'tcp', 'udp', or 'both'
-            ports: Port specification (e.g., '80,443' or '1-1000')
-            timing: Timing template (T0-T5)
-            service_detection: Enable service version detection
-            script_scan: Run default NSE scripts
-            ping_first: Ping scan before port scan
-            sudo: Use sudo for raw socket access
-            callback: Function to call with progress updates
-        
+
         Returns:
-            dict: Scan results
+            dict: Scan results (also written to JSON on disk).
         """
-        # Validate target
+        # --- validation ---------------------------------------------------------
         target_info = get_target_type(target)
         if target_info['type'] == 'unknown':
             raise ScanError(f"Invalid target: {target}", target=target, tool="port_scanner")
 
-        # Determine scan mode
         is_internal = target_info['is_internal']
         scan_mode = "internal" if is_internal else "external"
 
@@ -104,113 +104,168 @@ class PortScanner:
 
         start_time = time.time()
 
+        # --- paths (defined up-front so failures still leave a trace) ----------
+        # 2d: microsecond precision + safe target name
+        timestamp    = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
+        safe_target  = self._sanitize_for_filename(target)          # 2c
+        xml_output   = os.path.join(self.output_dir, f"nmap_{safe_target}_{timestamp}.xml")
+        normal_output= os.path.join(self.output_dir, f"nmap_{safe_target}_{timestamp}.txt")
+        json_output  = os.path.join(self.output_dir, f"scan_{safe_target}_{timestamp}.json")
+        log_output   = os.path.join(self.output_dir, f"nmap_{safe_target}_{timestamp}.log")
+
         try:
-            # Build nmap command
+            # --- build command -------------------------------------------------
             cmd = self._build_nmap_command(
                 target, scan_type, ports, timing,
                 service_detection, script_scan, ping_first, sudo
             )
 
-            # Create output file
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            safe_target = self.fm.safe_filename(target)
-            xml_output = os.path.join(self.output_dir, f"nmap_{safe_target}_{timestamp}.xml")
-            normal_output = os.path.join(self.output_dir, f"nmap_{safe_target}_{timestamp}.txt")
-
-            # Add output flags
+            # Put -oX/-oN BEFORE the target (more portable, but not strictly required)
+            # _build_nmap_command appends target last, so pop it, add flags, re-append.
+            target_arg = cmd.pop()
             cmd.extend(['-oX', xml_output, '-oN', normal_output])
+            cmd.append(target_arg)
 
             self.logger.info(f"Running command: {' '.join(cmd)}")
 
-            # Notify start
-            self.notifier.beep(silent=False)
+            # Notifier is best-effort — never abort a scan because beeping failed
+            try:
+                self.notifier.beep(silent=False)
+            except Exception as e:
+                self.logger.debug(f"notifier.beep failed: {e}")
 
-            # Execute scan
-            process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                bufsize=1
-            )
-
-            # Monitor progress
+            # --- run the scan --------------------------------------------------
+            # 2a + 2b: merge stderr into stdout.  This (1) prevents the deadlock
+            # from an undrained stderr pipe, and (2) makes --stats-every progress
+            # lines (which go to stderr) visible to `callback` and the progress
+            # logger below.
             output_lines = []
-            for line in process.stdout:
-                output_lines.append(line)
-                if callback:
-                    callback(line)
-                # Log progress at milestones
-                if 'About' in line and '%' in line:
-                    try:
-                        pct = int(line.split('%')[0].split()[-1])
-                        if pct in [25, 50, 75, 100]:
-                            self.logger.info(f"Scan progress: {pct}%")
-                            self.notifier.beep_progress(pct)
-                    except (ValueError, IndexError):
-                        pass
+            with open(log_output, 'w') as logf:
+                process = subprocess.Popen(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,   # merged stream
+                    text=True,
+                    bufsize=1,
+                )
+                for line in process.stdout:
+                    output_lines.append(line)
+                    logf.write(line)
+                    logf.flush()
 
-            process.wait()
+                    if callback:
+                        try:
+                            callback(line)
+                        except Exception as e:
+                            self.logger.debug(f"callback failed: {e}")
 
-            if process.returncode != 0:
-                stderr_content = process.stderr.read() if process.stderr else ""
-                stdout_content = process.stdout.read() if process.stdout else ""
-                error_msg = stderr_content or stdout_content or "Unknown error"
-                self.logger.error(f"Nmap error: {error_msg}")
-                raise ScanError(f"Scan failed: {error_msg}", target=target, tool="nmap")
+                    if 'About' in line and '%' in line:
+                        try:
+                            pct = int(line.split('%')[0].split()[-1])
+                            if pct in (25, 50, 75, 100):
+                                self.logger.info(f"Scan progress: {pct}%")
+                                try:
+                                    self.notifier.beep_progress(pct)
+                                except Exception:
+                                    pass
+                        except (ValueError, IndexError):
+                            pass
+
+                returncode = process.wait()
+
+            if returncode != 0:
+                # Keep last 50 lines of merged output for the error message
+                tail = ''.join(output_lines[-50:]) or "Unknown error"
+                self.logger.error(f"Nmap error (rc={returncode}): {tail}")
+                raise ScanError(
+                    f"Scan failed (rc={returncode}): {tail}",
+                    target=target, tool="nmap"
+                )
 
             duration = time.time() - start_time
 
-            # Parse results
-            from tools.port_scanner.parser import ScanParser
-            parser = ScanParser()
-            results = parser.parse_xml(xml_output)
+            # --- parse ---------------------------------------------------------
+            # 2f: isolate parsing so a partial/corrupt XML doesn't nuke everything.
+            try:
+                from tools.port_scanner.parser import ScanParser
+                parser = ScanParser()
+                results = parser.parse_xml(xml_output)
+            except Exception as e:
+                self.logger.error(f"Failed to parse {xml_output}: {e}")
+                raise ScanError(
+                    f"Parse failed: {e} (raw XML kept at {xml_output}, "
+                    f"log at {log_output})",
+                    target=target, tool="nmap"
+                )
+
             results['scan_metadata'] = {
-                'target': target,
-                'scan_type': scan_type,
-                'scan_mode': scan_mode,
-                'duration': duration,
-                'timestamp': datetime.now().isoformat(),
-                'command': ' '.join(cmd),
-                'xml_file': xml_output,
-                'normal_file': normal_output
+                'target':        target,
+                'scan_type':     scan_type,
+                'scan_mode':     scan_mode,
+                'duration':      duration,
+                'timestamp':     datetime.now().isoformat(),
+                'command':       ' '.join(cmd),
+                'returncode':    returncode,
+                'xml_file':      xml_output,
+                'normal_file':   normal_output,
+                'log_file':      log_output,
             }
 
-            # Save parsed results as JSON
-            json_output = os.path.join(self.output_dir, f"scan_{safe_target}_{timestamp}.json")
-            self.fm.write_json(json_output, results)
+            # 2e: set json_file BEFORE serialising so it's actually in the file
             results['json_file'] = json_output
 
-            # Save to database if available
+            # --- save ----------------------------------------------------------
+            try:
+                self.fm.write_json(json_output, results)
+            except Exception as e:
+                self.logger.error(f"Failed to write JSON {json_output}: {e}")
+                raise ScanError(
+                    f"Failed to save results: {e} (XML kept at {xml_output})",
+                    target=target, tool="nmap"
+                )
+
+            # --- database (best-effort, unchanged) -----------------------------
             self._save_to_database(target, target_info, results, duration)
 
-            # Log completion
             log_scan_complete(self.logger, target, f"port_scanner_{scan_type}", duration)
-            self.notifier.beep_complete()
+            try:
+                self.notifier.beep_complete()
+            except Exception:
+                pass
 
             self.logger.info(
                 f"Scan complete: {results['summary']['total_open_ports']} open ports found"
             )
-
             return results
 
+        except ScanError:
+            try:
+                self.notifier.beep_error()
+            except Exception:
+                pass
+            raise
         except Exception as e:
-            self.logger.error(f"Scan failed for {target}: {str(e)}")
-            self.notifier.beep_error()
+            self.logger.error(f"Scan failed for {target}: {e}")
+            try:
+                self.notifier.beep_error()
+            except Exception:
+                pass
             raise ScanError(str(e), target=target, tool="port_scanner")
-
+    
     def _build_nmap_command(self, target, scan_type, ports, timing,
                            service_detection, script_scan, ping_first, sudo):
         """Build nmap command from parameters."""
         cmd = []
 
         # Add sudo if requested
-        if sudo and os.geteuid() != 0:
-            cmd.extend(['sudo', self.nmap_path])
+        is_root = (os.geteuid() == 0)
+        use_sudo = sudo and not is_root and shutil.which("sudo")
+        if use_sudo:
+            cmd += ['sudo', self.nmap_path]
         else:
             cmd.append(self.nmap_path)
 
-            # Timing template
+        # Timing template
         timing_value = timing if timing in self.TIMING_TEMPLATES else "T4"
         cmd.append(f"-{timing_value}")
 
@@ -225,13 +280,18 @@ class PortScanner:
             cmd.extend(["--top-ports", "1000"])
 
         # Scan type
+        tcp_flag = '-sS' if is_root else '-sT'
         if scan_type == 'udp':
+            if not is_root:
+                raise ScanError("UDP scan requires root (not available)")
             cmd.append('-sU')
         elif scan_type == 'both':
-            cmd.append('-sS')
-            cmd.append('-sU')
+            if not is_root:
+                cmd.append('-sT')        # TCP part only
+            else:
+                cmd += ['-sS', '-sU']
         else:
-            cmd.append('-sS')  # TCP SYN scan (default)
+            cmd.append(tcp_flag)
 
         # Service detection
         if service_detection:
@@ -372,3 +432,66 @@ class PortScanner:
     def is_tool_available(self):
         """Check if scanning tools are available."""
         return os.path.exists(self.nmap_path)
+
+
+# ----------------------------------------------------------------------------
+# CLI entry point
+# ----------------------------------------------------------------------------
+def _cli():
+    import argparse
+
+    p = argparse.ArgumentParser(prog="port_scanner")
+    p.add_argument("targets",
+                   help="File with one target per line, or a single target")
+    p.add_argument("--scan-type", default="quick",
+                   choices=["quick", "full", "tcp", "udp", "both"])
+    p.add_argument("--ports", default=None)
+    p.add_argument("--timing", default="T4",
+                   choices=["T0", "T1", "T2", "T3", "T4", "T5"])
+    p.add_argument("--output-dir", "--output", dest="output_dir",
+                   default="data/intermediate")
+    p.add_argument("--sudo", action="store_true")
+    p.add_argument("--script-scan", action="store_true")
+    p.add_argument("--no-service", action="store_true")
+
+    args = p.parse_args()
+
+    if os.path.isfile(args.targets):
+        targets = []
+        with open(args.targets) as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#"):
+                    targets.append(line)
+    else:
+        targets = [args.targets]
+
+    if not targets:
+        print("ERROR: no targets", file=sys.stderr)
+        return 2
+
+    if args.scan_type == "quick":
+        st, ports, svc, scr = "tcp", args.ports or "top-1000", False, False
+    elif args.scan_type == "full":
+        st, ports, svc, scr = "tcp", args.ports or "1-65535", True, True
+    else:
+        st, ports, svc, scr = args.scan_type, args.ports, not args.no_service, args.script_scan
+
+    scanner = PortScanner(output_dir=args.output_dir)
+    ok = failed = 0
+    for i, t in enumerate(targets, 1):
+        print(f"[*] ({i}/{len(targets)}) {t}", file=sys.stderr)
+        try:
+            scanner.scan(t, scan_type=st, ports=ports, timing=args.timing,
+                         service_detection=svc, script_scan=scr,
+                         ping_first=True, sudo=args.sudo)
+            ok += 1
+        except Exception as e:
+            print(f"[!] {t}: {e}", file=sys.stderr)
+            failed += 1
+    print(f"[+] {ok} ok, {failed} failed", file=sys.stderr)
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    sys.exit(_cli())

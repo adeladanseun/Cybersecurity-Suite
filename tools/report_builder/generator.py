@@ -15,6 +15,7 @@ from core.file_manager import FileManager
 from core.logger import get_logger
 from core.notifier import Notifier
 from core.exceptions import FileManagerError
+from core.progress import spinner, bar, track
 
 
 class ReportGenerator:
@@ -75,25 +76,14 @@ class ReportGenerator:
         
         try:
             # Generate each format
-            if 'html' in formats:
-                html_path = self._generate_html(data, report_type, name)
-                generated_files['html'] = html_path
-            
-            if 'csv' in formats:
-                csv_path = self._generate_csv(data, name)
-                generated_files['csv'] = csv_path
-            
-            if 'txt' in formats:
-                txt_path = self._generate_txt(data, report_type, name)
-                generated_files['txt'] = txt_path
-            
-            if 'json' in formats:
-                json_path = self._generate_json(data, name)
-                generated_files['json'] = json_path
-            
-            if 'pdf' in formats:
-                pdf_path = self._generate_pdf(data, report_type, name)
-                generated_files['pdf'] = pdf_path
+            handlers = {}
+            if 'html' in formats: handlers['html'] = lambda: self._generate_html(data, report_type, name)
+            if 'csv'  in formats: handlers['csv']  = lambda: self._generate_csv(data, name)
+            if 'txt'  in formats: handlers['txt']  = lambda: self._generate_txt(data, report_type, name)
+            if 'json' in formats: handlers['json'] = lambda: self._generate_json(data, name)
+            if 'pdf'  in formats: handlers['pdf']  = lambda: self._generate_pdf(data, report_type, name)
+            for fmt in track(handlers, desc=f"Reports ({report_type})"):
+                generated_files[fmt] = handlers[fmt]()
             
             self.logger.info(f"Report generation complete: {len(generated_files)} formats")
             self.notifier.beep_complete()
@@ -133,7 +123,7 @@ class ReportGenerator:
         # Extract findings
         findings = self._extract_findings(data)
         
-        for finding in findings:
+        for finding in track(findings, desc="CSV rows"):
             csv_data.append({
                 'Target': finding.get('target', 'N/A'),
                 'Port': finding.get('port', 'N/A'),
@@ -228,7 +218,6 @@ class ReportGenerator:
     def _generate_json(self, data, name):
         """Generate JSON report (raw data export)."""
         output_path = os.path.join(self.output_dir, 'json', f"{name}.json")
-        
         # Add metadata
         export_data = {
             'report_metadata': {
@@ -245,162 +234,162 @@ class ReportGenerator:
     def _generate_pdf(self, data, report_type, name):
         """Generate PDF report from HTML."""
         output_path = os.path.join(self.output_dir, 'pdf', f"{name}.pdf")
-        
-        try:
-            # Try weasyprint first
-            import weasyprint
-            
-            html_path = self._generate_html(data, report_type, f"{name}_temp")
-            html_content = self.fm.read_file(html_path)
-            
-            weasyprint.HTML(string=html_content).write_pdf(output_path)
-            
-            # Clean temp HTML
-            if os.path.exists(html_path):
-                os.remove(html_path)
-            
-            return output_path
-            
-        except ImportError:
-            # Fall back to reportlab
+        with spinner(f"Rendering PDF ({report_type})"):
             try:
-                from reportlab.lib.pagesizes import letter
-                from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-                from reportlab.lib.styles import getSampleStyleSheet
+                # Try weasyprint first
+                import weasyprint
                 
-                doc = SimpleDocTemplate(output_path, pagesize=letter)
-                styles = getSampleStyleSheet()
-                story = []
+                html_path = self._generate_html(data, report_type, f"{name}_temp")
+                html_content = self.fm.read_file(html_path)
                 
-                # Title
-                title = f"Security Assessment Report - {report_type.title()}"
-                story.append(Paragraph(title, styles['Title']))
-                story.append(Spacer(1, 12))
+                weasyprint.HTML(string=html_content).write_pdf(output_path)
                 
-                # Timestamp
-                timestamp = f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-                story.append(Paragraph(timestamp, styles['Normal']))
-                story.append(Spacer(1, 24))
+                # Clean temp HTML
+                if os.path.exists(html_path):
+                    os.remove(html_path)
                 
-                # Summary section
-                if 'summary' in data:
-                    story.append(Paragraph("Summary", styles['Heading2']))
-                    for key, value in data['summary'].items():
-                        if not isinstance(value, (list, dict)):
-                            text = f"<b>{key.replace('_', ' ').title()}:</b> {value}"
-                            story.append(Paragraph(text, styles['Normal']))
-                
-                doc.build(story)
                 return output_path
                 
             except ImportError:
-                self.logger.warning("No PDF library available. Install weasyprint or reportlab.")
-                raise
+                # Fall back to reportlab
+                try:
+                    from reportlab.lib.pagesizes import letter
+                    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+                    from reportlab.lib.styles import getSampleStyleSheet
+                    
+                    doc = SimpleDocTemplate(output_path, pagesize=letter)
+                    styles = getSampleStyleSheet()
+                    story = []
+                    
+                    # Title
+                    title = f"Security Assessment Report - {report_type.title()}"
+                    story.append(Paragraph(title, styles['Title']))
+                    story.append(Spacer(1, 12))
+                    
+                    # Timestamp
+                    timestamp = f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                    story.append(Paragraph(timestamp, styles['Normal']))
+                    story.append(Spacer(1, 24))
+                    
+                    # Summary section
+                    if 'summary' in data:
+                        story.append(Paragraph("Summary", styles['Heading2']))
+                        for key, value in data['summary'].items():
+                            if not isinstance(value, (list, dict)):
+                                text = f"<b>{key.replace('_', ' ').title()}:</b> {value}"
+                                story.append(Paragraph(text, styles['Normal']))
+                    
+                    doc.build(story)
+                    return output_path
+                
+                except ImportError:
+                    self.logger.warning("No PDF library available. Install weasyprint or reportlab.")
+                    raise
     
     def _generate_basic_html(self, data, report_type):
         """Generate basic HTML without Jinja2 template."""
         findings = self._extract_findings(data)
         
         html = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Security Assessment Report - {report_type.title()}</title>
-    <style>
-        body {{ font-family: Arial, sans-serif; margin: 40px; color: #333; }}
-        h1 {{ color: #1a1a2e; border-bottom: 3px solid #e94560; padding-bottom: 10px; }}
-        h2 {{ color: #16213e; margin-top: 30px; }}
-        .summary {{ background: #f0f0f0; padding: 20px; border-radius: 5px; margin: 20px 0; }}
-        table {{ width: 100%; border-collapse: collapse; margin: 20px 0; }}
-        th {{ background: #1a1a2e; color: white; padding: 10px; text-align: left; }}
-        td {{ padding: 10px; border-bottom: 1px solid #ddd; }}
-        .critical {{ background: #ffebee; color: #c62828; padding: 3px 8px; border-radius: 3px; font-weight: bold; }}
-        .high {{ background: #fff3e0; color: #e65100; padding: 3px 8px; border-radius: 3px; font-weight: bold; }}
-        .medium {{ background: #fffde7; color: #f9a825; padding: 3px 8px; border-radius: 3px; font-weight: bold; }}
-        .low {{ background: #e8f5e9; color: #2e7d32; padding: 3px 8px; border-radius: 3px; font-weight: bold; }}
-        .info {{ background: #e3f2fd; color: #1565c0; padding: 3px 8px; border-radius: 3px; font-weight: bold; }}
-        .footer {{ margin-top: 50px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 0.9em; }}
-    </style>
-</head>
-<body>
-    <h1>Security Assessment Report</h1>
-    <p><strong>Report Type:</strong> {report_type.title()}</p>
-    <p><strong>Generated:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
-    
-    <div class="summary">
-        <h2>Summary</h2>"""
-        
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Security Assessment Report - {report_type.title()}</title>
+                <style>
+                    body {{ font-family: Arial, sans-serif; margin: 40px; color: #333; }}
+                    h1 {{ color: #1a1a2e; border-bottom: 3px solid #e94560; padding-bottom: 10px; }}
+                    h2 {{ color: #16213e; margin-top: 30px; }}
+                    .summary {{ background: #f0f0f0; padding: 20px; border-radius: 5px; margin: 20px 0; }}
+                    table {{ width: 100%; border-collapse: collapse; margin: 20px 0; }}
+                    th {{ background: #1a1a2e; color: white; padding: 10px; text-align: left; }}
+                    td {{ padding: 10px; border-bottom: 1px solid #ddd; }}
+                    .critical {{ background: #ffebee; color: #c62828; padding: 3px 8px; border-radius: 3px; font-weight: bold; }}
+                    .high {{ background: #fff3e0; color: #e65100; padding: 3px 8px; border-radius: 3px; font-weight: bold; }}
+                    .medium {{ background: #fffde7; color: #f9a825; padding: 3px 8px; border-radius: 3px; font-weight: bold; }}
+                    .low {{ background: #e8f5e9; color: #2e7d32; padding: 3px 8px; border-radius: 3px; font-weight: bold; }}
+                    .info {{ background: #e3f2fd; color: #1565c0; padding: 3px 8px; border-radius: 3px; font-weight: bold; }}
+                    .footer {{ margin-top: 50px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 0.9em; }}
+                </style>
+            </head>
+            <body>
+                <h1>Security Assessment Report</h1>
+                <p><strong>Report Type:</strong> {report_type.title()}</p>
+                <p><strong>Generated:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+                
+                <div class="summary">
+                    <h2>Summary</h2>"""
+                    
         if 'summary' in data:
             for key, value in data['summary'].items():
                 if not isinstance(value, (list, dict)):
                     html += f"<p><strong>{key.replace('_', ' ').title()}:</strong> {value}</p>\n"
         
         html += """
-    </div>
-    
-    <h2>Open Ports</h2>
-    <table>
-        <tr>
-            <th>Port</th>
-            <th>Protocol</th>
-            <th>Service</th>
-            <th>Product</th>
-            <th>Version</th>
-            <th>State</th>
-        </tr>"""
-        
+                </div>
+                
+                <h2>Open Ports</h2>
+                <table>
+                    <tr>
+                        <th>Port</th>
+                        <th>Protocol</th>
+                        <th>Service</th>
+                        <th>Product</th>
+                        <th>Version</th>
+                        <th>State</th>
+                    </tr>"""
+                    
         if 'ports' in data:
             for port in data['ports']:
                 state_class = 'info'
                 if port.get('state') == 'open':
                     state_class = 'low'
                 html += f"""
-        <tr>
-            <td>{port.get('port', 'N/A')}</td>
-            <td>{port.get('protocol', 'N/A')}</td>
-            <td>{port.get('service', 'N/A')}</td>
-            <td>{port.get('product', 'N/A')}</td>
-            <td>{port.get('version', 'N/A')}</td>
-            <td><span class="{state_class}">{port.get('state', 'N/A')}</span></td>
-        </tr>"""
-        
+                    <tr>
+                        <td>{port.get('port', 'N/A')}</td>
+                        <td>{port.get('protocol', 'N/A')}</td>
+                        <td>{port.get('service', 'N/A')}</td>
+                        <td>{port.get('product', 'N/A')}</td>
+                        <td>{port.get('version', 'N/A')}</td>
+                        <td><span class="{state_class}">{port.get('state', 'N/A')}</span></td>
+                    </tr>"""
+                    
         html += """
-    </table>"""
-        
+                </table>"""
+                    
         if findings:
             html += """
-    <h2>Findings</h2>
-    <table>
-        <tr>
-            <th>Severity</th>
-            <th>Title</th>
-            <th>Target</th>
-            <th>Port</th>
-            <th>Description</th>
-        </tr>"""
-            
+                <h2>Findings</h2>
+                <table>
+                    <tr>
+                        <th>Severity</th>
+                        <th>Title</th>
+                        <th>Target</th>
+                        <th>Port</th>
+                        <th>Description</th>
+                    </tr>"""
+                        
             for finding in findings:
                 severity = finding.get('severity', 'info').lower()
                 html += f"""
-        <tr>
-            <td><span class="{severity}">{severity.upper()}</span></td>
-            <td>{finding.get('title', 'N/A')}</td>
-            <td>{finding.get('target', 'N/A')}</td>
-            <td>{finding.get('port', 'N/A')}</td>
-            <td>{finding.get('description', 'N/A')[:200]}</td>
-        </tr>"""
-            
+                    <tr>
+                        <td><span class="{severity}">{severity.upper()}</span></td>
+                        <td>{finding.get('title', 'N/A')}</td>
+                        <td>{finding.get('target', 'N/A')}</td>
+                        <td>{finding.get('port', 'N/A')}</td>
+                        <td>{finding.get('description', 'N/A')[:200]}</td>
+                    </tr>"""
+                        
             html += """
-    </table>"""
-        
+                </table>"""
+                    
         html += """
-    <div class="footer">
-        <p>Generated by CyberSecurity Suite - Report Builder</p>
-        <p>This report contains confidential security assessment information.</p>
-    </div>
-</body>
-</html>"""
+                <div class="footer">
+                    <p>Generated by CyberSecurity Suite - Report Builder</p>
+                    <p>This report contains confidential security assessment information.</p>
+                </div>
+            </body>
+            </html>"""
         
         return html
     
@@ -413,7 +402,7 @@ class ReportGenerator:
                 template_content = f.read()
             
             template = Template(template_content)
-            
+            #with spinner(f"Building {report_type} report"): if slow
             # Prepare template data
             template_data = {
                 'report_type': report_type,

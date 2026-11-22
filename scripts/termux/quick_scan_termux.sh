@@ -7,8 +7,14 @@ set -euo pipefail
 # Source utilities
 source "$(dirname "$0")/utils.sh"
 
-PROJECT_DIR="$(dirname "$(dirname "$0")")"
-cd "$PROJECT_DIR"
+# PROJECT_DIR="$(dirname "$(dirname "$0")")"
+# cd "$PROJECT_DIR"
+
+# SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+# cd "$PROJECT_DIR"
+
+source "$(d="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; while [ ! -f "$d/.cybersec-root" ] && [ "$d" != "/" ]; do d="$(dirname "$d")"; done; echo "$d/scripts/lib/init.sh")"
 
 # Default values
 TARGET_FILE="data/targets/targets.txt"

@@ -7,8 +7,10 @@ set -e
 # Source utilities
 source "$(dirname "$0")/utils.sh"
 
-PROJECT_DIR="$(dirname "$(dirname "$0")")"
-cd "$PROJECT_DIR"
+# PROJECT_DIR="$(dirname "$(dirname "$0")")"
+# cd "$PROJECT_DIR"
+
+source "$(d="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; while [ ! -f "$d/.cybersec-root" ] && [ "$d" != "/" ]; do d="$(dirname "$d")"; done; echo "$d/scripts/lib/init.sh")"
 
 show_banner
 echo "Updating Offline Databases..."

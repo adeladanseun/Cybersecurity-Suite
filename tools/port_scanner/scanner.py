@@ -12,10 +12,8 @@ from datetime import datetime
 from pathlib import Path
 import re
 
-# Add project root to path
 import sys
 #sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
-
 from core.file_manager import FileManager
 from core.validator import (
     is_valid_ip, is_valid_cidr, is_valid_domain,
@@ -24,9 +22,11 @@ from core.validator import (
 from core.logger import get_logger, log_scan_start, log_scan_complete
 from core.notifier import Notifier
 from core.exceptions import ScanError, ToolNotFoundError
+from core.progress import bar, spinner
 
 
 class PortScanner:
+
     """Network port scanner supporting nmap and masscan."""
 
     SCAN_TYPES = ['tcp', 'udp', 'both']
@@ -36,6 +36,7 @@ class PortScanner:
         """
         Initialize port scanner.
         
+        # Add project root to path
         Args:
             config: Config object (optional)
             output_dir: Output directory for scan results
@@ -140,38 +141,19 @@ class PortScanner:
             # lines (which go to stderr) visible to `callback` and the progress
             # logger below.
             output_lines = []
+
             with open(log_output, 'w') as logf:
-                process = subprocess.Popen(
-                    cmd,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,   # merged stream
-                    text=True,
-                    bufsize=1,
-                )
-                for line in process.stdout:
-                    output_lines.append(line)
-                    logf.write(line)
-                    logf.flush()
-
-                    if callback:
-                        try:
-                            callback(line)
-                        except Exception as e:
-                            self.logger.debug(f"callback failed: {e}")
-
-                    if 'About' in line and '%' in line:
-                        try:
-                            pct = int(line.split('%')[0].split()[-1])
-                            if pct in (25, 50, 75, 100):
-                                self.logger.info(f"Scan progress: {pct}%")
-                                try:
-                                    self.notifier.beep_progress(pct)
-                                except Exception:
-                                    pass
-                        except (ValueError, IndexError):
-                            pass
-
-                returncode = process.wait()
+                process = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                        stderr=subprocess.STDOUT, text=True, bufsize=1)
+                with bar(total=100, desc=f"nmap {target}", unit="%") as pbar:
+                    for line in process.stdout:
+                        output_lines.append(line)
+                        logf.write(line); logf.flush()
+                        pbar.feed_line(line)                    # all parsing, one line
+                        if callback:
+                            try: callback(line)
+                            except Exception: pass
+                    returncode = process.wait()
 
             if returncode != 0:
                 # Keep last 50 lines of merged output for the error message
@@ -310,9 +292,10 @@ class PortScanner:
             cmd.append('-Pn')
 
         # Additional flags
+        stats_interval = "0.1s" if (ports in (None, "top-1000", "top-100")) else "2s"
         cmd.extend([
             '--open',           # Only show open ports
-            '--stats-every', '10s',  # Progress updates
+            '--stats-every', stats_interval,  # Progress updates
             '-n',               # No DNS resolution (faster)
             '--min-rate', '1000' # Minimum packet rate
         ])

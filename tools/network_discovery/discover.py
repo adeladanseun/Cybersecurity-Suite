@@ -18,6 +18,7 @@ from core.validator import is_valid_cidr, is_valid_ip_range, is_valid_ip, is_pri
 from core.logger import get_logger, log_scan_start, log_scan_complete
 from core.notifier import Notifier
 from core.exceptions import ScanError, ValidationError
+from core.progress import spinner
 from .arp_scanner import ARPScanner
 from .network_mapper import NetworkMapper
 
@@ -65,93 +66,141 @@ class NetworkDiscovery:
         # Initialize scanners
         self.arp_scanner = ARPScanner(output_dir=self.output_dir)
         self.network_mapper = NetworkMapper(output_dir=self.output_dir)
+
+        self.arp_scanner = ARPScanner(output_dir=self.output_dir)
+        self.network_mapper = NetworkMapper(output_dir=self.output_dir)
+
+        self.scapy_capability = self._detect_scapy_capability()
+        self.logger.info(
+            f"Scapy capability: {self.scapy_capability}"
+                + ("" if self.scapy_capability == "raw"
+                        else " (raw sockets unavailable)" )
+        )
     
     def discover_network(self, network, method='auto', ping_first=True):
         """
         Discover live hosts on a network.
-        
+
         Args:
             network: Network range (CIDR or IP range)
-            method: 'auto', 'arp', 'ping', 'nmap'
+            method: 'auto', 'arp', 'scapy_tcp', 'ping', 'nmap'
             ping_first: Ping sweep before detailed discovery
-        
+
         Returns:
             dict: Network discovery results
         """
         # Validate network
         if not (is_valid_cidr(network) or is_valid_ip_range(network) or is_valid_ip(network)):
-            raise ValidationError(f"Invalid network: {network}", field="network", value=network)
-        
+            raise ValidationError(f"Invalid network: {network}",
+                                  field="network", value=network)
+
         # Check if internal network
         if is_valid_ip(network) and not is_private_ip(network):
             self.logger.warning(f"Public IP detected: {network}")
             self.logger.warning("Network discovery is designed for internal networks")
-        
+
         self.logger.info(f"Starting network discovery for: {network}")
         log_scan_start(self.logger, network, "network_discovery")
-        
+
         start_time = datetime.now()
-        
+
         results = {
-            'network': network,
+            'network':   network,
             'timestamp': datetime.now().isoformat(),
-            'method': method,
-            'hosts': [],
-            'summary': {}
+            'method':    method,
+            'hosts':     [],
+            'summary':   {},
         }
-        
-        try:
-            # Determine discovery method
-            if method == 'auto':
-                if is_private_ip(network.split('/')[0]) and SCAPY_AVAILABLE:
-                    method = 'arp'
+        with spinner(f"Scanning network {network}"):
+            try:
+                # ─── capability-driven method choice ────────────────────
+                if method == 'auto':
+                    cap = self.scapy_capability
+                    if cap == 'raw' and is_private_ip(network.split('/')[0]):
+                        method = 'arp'
+                    elif cap == 'tcp':
+                        method = 'scapy_tcp'
+                    else:
+                        method = 'nmap'
+
+                if method == 'arp' and self.scapy_capability != 'raw':
+                    raise ScanError(
+                        "ARP discovery requires raw sockets (root). "
+                        f"capability={self.scapy_capability}. "
+                        "Use method='scapy_tcp' or 'auto'.")
+
+                self.logger.info(f"Using {method.upper()} discovery method")
+
+                fallback_note = None
+                if method == 'scapy_tcp':
+                    fallback_note = {
+                        "reason":      "scapy raw sockets unavailable "
+                                    "(requires root; typical on unrooted Android)",
+                        "fallback":    "scapy TCP SYN probe",
+                        "probe_ports": [80, 443, 22, 8080, 8081],
+                        "limitation":  "hosts that silently drop all probe "
+                                    "SYN packets appear dead; no ARP/MAC",
+                    }
+                    self.logger.warning(
+                        "FALLBACK (Option 1): raw sockets unavailable → TCP SYN "
+                        "probe. A host that drops all of ports 80,443,22,8080,8081 "
+                        "will be reported as down."
+                    )
+
+                # ─── dispatch ──────────────────────────────────────────
+                if method == 'arp':
+                    hosts = self.arp_scanner.scan_network(network)
+                elif method == 'scapy_tcp':
+                    try:
+                        hosts = self._discover_with_scapy_tcp(network)
+                    except ScanError as e:
+                        self.logger.warning(
+                            f"scapy TCP failed ({e}); falling back to nmap -sn")
+                        method = 'nmap'
+                        hosts = self._discover_with_nmap(network)
+                elif method == 'nmap':
+                    hosts = self._discover_with_nmap(network)
                 else:
-                    method = 'ping'
+                    hosts = self._discover_with_ping(network)
+
+                # ─── results assembly (this is the block you lost) ─────
+                results['method'] = method
+                results['hosts']  = self._enrich_hosts(hosts)
+
+                # ← the line you were looking for, now in its real context
+                if fallback_note:
+                    results['discovery_note'] = fallback_note
+
+                results['summary'] = self._generate_summary(results)
+
+                # Save results
+                timestamp    = datetime.now().strftime('%Y%m%d_%H%M%S')
+                safe_network = self.fm.safe_filename(network.replace('/', '_'))
+                output_file  = os.path.join(
+                    self.output_dir,
+                    f"discovery_{safe_network}_{timestamp}.json")
+                self.fm.write_json(output_file, results)
+                results['output_file'] = output_file
+
+                # Save live hosts as a plain-text file
+                live_hosts = [h['ip'] for h in hosts if h.get('status') == 'up']
+                txt_file   = os.path.join(
+                    self.output_dir,
+                    f"live_hosts_{safe_network}_{timestamp}.txt")
+                self.fm.write_file(txt_file, "\n".join(live_hosts))
+
+                duration = (datetime.now() - start_time).total_seconds()
+                log_scan_complete(self.logger, network, "network_discovery", duration)
+                self.notifier.beep_complete()
+
+                self.logger.info(f"Discovery complete: {len(live_hosts)} hosts found")
+                return results
+
+            except Exception as e:
+                self.logger.error(f"Network discovery failed: {e}")
+                self.notifier.beep_error()
+                raise ScanError(str(e), target=network, tool="network_discovery")
             
-            self.logger.info(f"Using {method.upper()} discovery method")
-            
-            # Discover hosts
-            if method == 'arp' and SCAPY_AVAILABLE:
-                hosts = self.arp_scanner.scan_network(network)
-            elif method == 'nmap':
-                hosts = self._discover_with_nmap(network)
-            else:
-                hosts = self._discover_with_ping(network)
-            
-            results['hosts'] = hosts
-            results['method'] = method
-            
-            # Enrich host information
-            results['hosts'] = self._enrich_hosts(hosts)
-            
-            # Generate summary
-            results['summary'] = self._generate_summary(results)
-            
-            # Save results
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            safe_network = self.fm.safe_filename(network.replace('/', '_'))
-            output_file = os.path.join(self.output_dir, f"discovery_{safe_network}_{timestamp}.json")
-            self.fm.write_json(output_file, results)
-            results['output_file'] = output_file
-            
-            # Save live hosts as simple text file
-            live_hosts = [h['ip'] for h in hosts if h.get('status') == 'up']
-            txt_file = os.path.join(self.output_dir, f"live_hosts_{safe_network}_{timestamp}.txt")
-            self.fm.write_file(txt_file, "\n".join(live_hosts))
-            
-            duration = (datetime.now() - start_time).total_seconds()
-            log_scan_complete(self.logger, network, "network_discovery", duration)
-            self.notifier.beep_complete()
-            
-            self.logger.info(f"Discovery complete: {len(live_hosts)} hosts found")
-            
-            return results
-            
-        except Exception as e:
-            self.logger.error(f"Network discovery failed: {e}")
-            self.notifier.beep_error()
-            raise ScanError(str(e), target=network, tool="network_discovery")
-    
     def _discover_with_ping(self, network):
         """Discover hosts using ping sweep."""
         hosts = []
@@ -232,8 +281,8 @@ class NetworkDiscovery:
             
             cmd = [nmap_path, '-sn', '-n', network]
             
-            if os.geteuid() != 0:
-                cmd = ['sudo'] + cmd
+            # if os.geteuid() != 0:
+            #     cmd = ['sudo'] + cmd
             
             self.logger.info(f"Running nmap discovery: {' '.join(cmd)}")
             
@@ -408,3 +457,100 @@ class NetworkDiscovery:
                     continue
         
         return networks
+    
+        # ─── capability probe ───────────────────────────────────────────────
+    
+    def _detect_scapy_capability(self) -> str:
+        """
+        'raw'  = AF_PACKET works  → full scapy (ARP + MAC)
+        'tcp'  = sr() works       → TCP SYN only (Option 1)
+        'none' = scapy unusable   → nmap -sn
+        """
+        if not SCAPY_AVAILABLE:
+            return "none"
+        try:
+            import socket as _sock
+            s = _sock.socket(_sock.AF_PACKET, _sock.SOCK_RAW, 0)
+            s.close()
+            return "raw"
+        except (AttributeError, PermissionError, OSError):
+            pass
+        try:
+            from scapy.all import IP, TCP, sr
+            sr(IP(dst="127.0.0.1") / TCP(dport=9, flags="S"),
+               timeout=1, verbose=0)
+            return "tcp"
+        except Exception:
+            return "none"
+
+    # ─── shared expansion helper ────────────────────────────────────────
+    def _expand_network(self, network: str) -> list:
+        if "/" in network:
+            return [str(ip) for ip in
+                    ipaddress.ip_network(network, strict=False).hosts()]
+        if "-" in network and network.count(".") == 6:
+            start, end = network.split("-")
+            s = ipaddress.IPv4Address(start.strip())
+            e = ipaddress.IPv4Address(end.strip())
+            return [str(ipaddress.IPv4Address(i))
+                    for i in range(int(s), int(e) + 1)]
+        return [network]
+
+    # ─── Option 1: scapy TCP SYN probe ──────────────────────────────────
+    def _discover_with_scapy_tcp(self, network,
+                                 probe_ports=(80, 443, 22, 8080, 8081)):
+        """Fallback used when raw sockets are unavailable (Option 1)."""
+        if not SCAPY_AVAILABLE:
+            raise ScanError("scapy is not installed")
+        try:
+            from scapy.all import IP, TCP, sr
+        except ImportError as e:
+            raise ScanError(f"scapy import failed: {e}")
+
+        ips = self._expand_network(network)
+        if not ips:
+            raise ScanError(f"could not expand network: {network}")
+
+        self.logger.info(
+            f"Probing {len(ips)} host(s) with TCP SYN on ports "
+            f"{list(probe_ports)} (raw-socket fallback)"
+        )
+
+        hosts = []
+        for i, ip in enumerate(ips, 1):
+            try:
+                ans, _ = sr(
+                    IP(dst=ip) / TCP(dport=list(probe_ports), flags="S"),
+                    timeout=2, verbose=0,
+                )
+            except PermissionError as e:
+                raise ScanError(
+                    f"scapy TCP probe denied: {e} "
+                    f"(this platform cannot send probes either)")
+            except Exception as e:
+                self.logger.debug(f"probe error for {ip}: {e}")
+                continue
+
+            if ans:
+                open_ports = sorted({r[TCP].sport for _, r in ans
+                                     if r.haslayer(TCP)
+                                     and r[TCP].flags == "SA"})
+                host = {"ip": ip, "status": "up",
+                        "discovery_method": "scapy_tcp",
+                        "timestamp": datetime.now().isoformat()}
+                if open_ports:
+                    host["open_ports"] = open_ports
+                hosts.append(host)
+                detail = f"open={open_ports}" if open_ports else "RST only"
+                self.logger.info(f"  {ip}: up ({detail})")
+            else:
+                self.logger.debug(
+                    f"  {ip}: no response on {list(probe_ports)}")
+
+            if i % 25 == 0:
+                pct = int(i / len(ips) * 100)
+                if pct in (25, 50, 75):
+                    self.logger.info(f"Progress: {pct}%")
+                    self.notifier.beep_progress(pct)
+
+        return hosts

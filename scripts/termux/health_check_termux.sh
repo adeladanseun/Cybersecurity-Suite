@@ -2,15 +2,15 @@
 # CyberSecurity Suite - Health Check Script
 # Verifies all components are working
 
-set -e
-
-# Source utilities
+# Locate project root and source libraries
+PROJECT_DIR="$(d="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; while [ ! -f "$d/.cybersec-root" ] && [ "$d" != "/" ]; do d="$(dirname "$d")"; done; echo "$d")"
 source "$(dirname "$0")/utils.sh"
+source "$PROJECT_DIR/scripts/lib/init.sh"
 
-# PROJECT_DIR="$(dirname "$(dirname "$0")")"
-# cd "$PROJECT_DIR"
+cd "$PROJECT_DIR" || exit 1
 
-source "$(d="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"; while [ ! -f "$d/.cybersec-root" ] && [ "$d" != "/" ]; do d="$(dirname "$d")"; done; echo "$d/scripts/lib/init.sh")"
+ISSUES=0
+WARNINGS=0
 
 show_banner
 echo "Health Check Report"
@@ -28,6 +28,7 @@ if is_kali; then
     print_success "OS: Kali Linux"
 else
     print_warning "OS: Not Kali Linux (may still work)"
+    WARNINGS=$((WARNINGS+1))
 fi
 
 # Python
@@ -35,6 +36,7 @@ if check_python_version; then
     print_success "Python: $(python3 --version 2>&1)"
 else
     print_error "Python: Version too old or not found"
+    ISSUES=$((ISSUES+1))
 fi
 
 # Disk
@@ -42,6 +44,7 @@ if check_disk_space; then
     print_success "Disk: Space OK"
 else
     print_error "Disk: Low space"
+    ISSUES=$((ISSUES+1))
 fi
 
 echo ""
@@ -58,6 +61,7 @@ for tool in "${TOOLS[@]}"; do
         print_success "$tool: Found ($VERSION)"
     else
         print_warning "$tool: Not found"
+        WARNINGS=$((WARNINGS+1))
     fi
 done
 
@@ -73,6 +77,7 @@ for dir in data reports logs; do
         print_success "Directory $dir: Exists"
     else
         print_error "Directory $dir: Missing"
+        ISSUES=$((ISSUES+1))
     fi
 done
 
@@ -80,7 +85,8 @@ done
 if [ -f "config.json" ]; then
     print_success "Config: Found"
 else
-    print_warning "Config: Missing"
+    print_error "Config: Missing"
+    ISSUES=$((ISSUES+1))
 fi
 
 # Database
@@ -88,7 +94,8 @@ if [ -f "data/databases/cybersec_suite.sqlite" ]; then
     DB_SIZE=$(du -h data/databases/cybersec_suite.sqlite | cut -f1)
     print_success "Database: Found ($DB_SIZE)"
 else
-    print_warning "Database: Not initialized"
+    print_error "Database: Not initialized"
+    ISSUES=$((ISSUES+1))
 fi
 
 echo ""
@@ -102,15 +109,18 @@ if [ -d ".venv" ]; then
     print_success "Virtual environment: Active"
 else
     print_warning "Virtual environment: Not found"
+    WARNINGS=$((WARNINGS+1))
 fi
 
-MODULES=("core.file_manager" "core.validator" "core.config" "core.database")
+# Note: dnspython imports as 'dns' and djangorestframework imports as 'rest_framework'
+MODULES=("core.file_manager" "core.validator" "core.config" "core.database" "scapy" "django" "dns" "rest_framework")
 
 for module in "${MODULES[@]}"; do
     if python3 -c "import $module" 2>/dev/null; then
         print_success "Module $module: OK"
     else
         print_error "Module $module: Failed"
+        ISSUES=$((ISSUES+1))
     fi
 done
 
@@ -125,6 +135,7 @@ if [ -f "tests/test_validator.py" ]; then
         print_success "Validator tests: Passed"
     else
         print_error "Validator tests: Failed"
+        ISSUES=$((ISSUES+1))
     fi
 fi
 
@@ -135,16 +146,13 @@ echo "========================================"
 echo "HEALTH CHECK COMPLETE"
 echo "========================================"
 
-# Count issues
-ISSUES=0
-if ! check_python_version; then ISSUES=$((ISSUES+1)); fi
-if [ ! -f "config.json" ]; then ISSUES=$((ISSUES+1)); fi
-if [ ! -f "data/databases/cybersec_suite.sqlite" ]; then ISSUES=$((ISSUES+1)); fi
-
-if [ $ISSUES -eq 0 ]; then
+if [ $ISSUES -eq 0 ] && [ $WARNINGS -eq 0 ]; then
     print_success "All systems healthy!"
     exit 0
+elif [ $ISSUES -eq 0 ]; then
+    print_warning "Healthy, with $WARNINGS warning(s)."
+    exit 0
 else
-    print_warning "$ISSUES issue(s) found. Run setup.sh to fix."
+    print_error "$ISSUES error(s) and $WARNINGS warning(s) found. Run setup.sh to fix."
     exit 1
 fi

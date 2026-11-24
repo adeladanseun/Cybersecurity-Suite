@@ -62,146 +62,107 @@ fi
 
 # Step 1: Network Discovery
 print_info "Step 1: Network Discovery..."
-beep 1
 
-python3 -c "
-import sys
-sys.path.insert(0, '.')
-from tools.network_discovery import NetworkDiscovery
-import json
+DISCOVERY_OUT="data/intermediate/${AUDIT_NAME:-scan}_discovery.json"
 
-discovery = NetworkDiscovery()
-with open('$TARGET_FILE') as f:
-    targets = [line.strip() for line in f if line.strip() and not line.startswith('#')]
-
-print(f'Discovering {len(targets)} targets...')
-results = {'targets': targets, 'hosts': [], 'timestamp': __import__('datetime').datetime.now().isoformat()}
-
-for target in targets:
-    try:
-        result = discovery.discover_network(target)
-        results['hosts'].extend(result.get('hosts', []))
-    except Exception as e:
-        print(f'  Warning: Discovery failed for {target}: {e}')
-
-with open('data/intermediate/${AUDIT_NAME}_discovery.json', 'w') as f:
-    json.dump(results, f, indent=2, default=str)
-
-print(f'Discovery complete: {len(results[\"hosts\"])} hosts found')
-"
-
-print_success "Network discovery complete"
-beep 1
+if python3 -m tools.network_discovery.cli "$TARGET_FILE" --output "$DISCOVERY_OUT"; then
+    print_success "Network discovery complete"
+else
+    rc=$?
+    case $rc in
+        3) print_warn  "Discovery ran clean, but no hosts responded" ;;
+        *) print_error "Network discovery failed (rc=$rc)" ;;
+    esac
+fi
 
 echo ""
 
 # Step 2: Port Scanning
 print_info "Step 2: Port Scanning..."
-beep 1
 
-python3 -c "
-import sys
-sys.path.insert(0, '.')
-from tools.port_scanner import PortScanner
-import json
+SCAN_OUT="data/intermediate/${AUDIT_NAME:-scan}_scan.json"
 
-scanner = PortScanner()
-with open('$TARGET_FILE') as f:
-    targets = [line.strip() for line in f if line.strip() and not line.startswith('#')]
+# SCAN_MODE is set earlier in the script: quick | full  (default quick)
+: "${SCAN_MODE:=quick}"
 
-print(f'Scanning {len(targets)} targets...')
-all_results = []
+echo ""
+echo "Running ${SCAN_MODE} scan"
+echo ""
 
-for target in targets:
-    try:
-        result = scanner.full_scan(target)
-        all_results.append(result)
-        print(f'  Scanned: {target} - {result[\"summary\"][\"total_open_ports\"]} open ports')
-    except Exception as e:
-        print(f'  Warning: Scan failed for {target}: {e}')
-
-# Combine results
-combined = {
-    'scan_metadata': {
-        'audit_name': '$AUDIT_NAME',
-        'targets': targets,
-        'timestamp': __import__('datetime').datetime.now().isoformat(),
-    },
-    'ports': [],
-    'hosts': [],
-    'summary': {'total_open_ports': 0}
-}
-
-for result in all_results:
-    combined['ports'].extend(result.get('ports', []))
-    combined['hosts'].extend(result.get('hosts', []))
-    combined['summary']['total_open_ports'] += result.get('summary', {}).get('total_open_ports', 0)
-
-with open('data/intermediate/${AUDIT_NAME}_scan.json', 'w') as f:
-    json.dump(combined, f, indent=2, default=str)
-
-print(f'Port scanning complete: {combined[\"summary\"][\"total_open_ports\"]} open ports total')
-"
-
-print_success "Port scanning complete"
-beep 2
+if python3 -m tools.port_scanner.cli "$TARGET_FILE" \
+        --mode "$SCAN_MODE" \
+        --audit-name "${AUDIT_NAME:-scan}" \
+        --combined-output "$SCAN_OUT" \
+        --output-dir data/intermediate; then
+    print_success "Port scanning complete"
+else
+    rc=$?
+    case $rc in
+        3) print_warn  "Port scan ran clean, but 0 open ports across all targets" ;;
+        *) print_error "Port scan failed (rc=$rc)";;
+    esac
+fi
 
 echo ""
 
 # Step 3: Vulnerability Checking
 print_info "Step 3: Vulnerability Checking..."
 
-python3 -c "
-import sys
-sys.path.insert(0, '.')
-from tools.vuln_checker import ServiceVulnChecker
-import json
+SCAN_IN="data/intermediate/${AUDIT_NAME:-scan}_scan.json"
+VULN_OUT="data/intermediate/${AUDIT_NAME:-scan}_vulns.json"
 
-checker = ServiceVulnChecker()
+if [ ! -f "$SCAN_IN" ]; then
+    print_error "Scan results missing: $SCAN_IN (did step 2 succeed?)"
+    exit 1
+fi
 
-with open('data/intermediate/${AUDIT_NAME}_scan.json') as f:
-    scan_data = json.load(f)
-
-print('Checking vulnerabilities...')
-vuln_results = checker.check_scan_results(scan_data)
-
-with open('data/intermediate/${AUDIT_NAME}_vulns.json', 'w') as f:
-    json.dump(vuln_results, f, indent=2, default=str)
-
-print(f'Vulnerability check complete: {vuln_results[\"summary\"][\"total_vulnerabilities\"]} found')
-"
-
-print_success "Vulnerability check complete"
-beep 1
+if python3 -m tools.vuln_checker.cli "$SCAN_IN" --output "$VULN_OUT"; then
+    print_success "Vulnerability check complete"
+else
+    rc=$?
+    case $rc in
+        3) print_warn  "Vulnerability check ran, but no findings" ;;
+        *) print_error "Vulnerability check failed (rc=$rc)";;
+    esac
+fi
 
 echo ""
 
 # Step 4: Report Generation
 print_info "Step 4: Generating Reports..."
 
-python3 -c "
-import sys
-sys.path.insert(0, '.')
-from tools.report_builder import ReportGenerator
-import json
+VULN_IN="data/intermediate/${AUDIT_NAME:-scan}_vulns.json"
+SCAN_IN="data/intermediate/${AUDIT_NAME:-scan}_scan.json"
+DISC_IN="data/intermediate/${AUDIT_NAME:-scan}_discovery.json"
+REPORT_DIR="reports"
 
-generator = ReportGenerator()
+if [ ! -f "$VULN_IN" ]; then
+    print_error "Vuln results missing: $VULN_IN (did step 3 succeed?)"
+    exit 1
+fi
 
-with open('data/intermediate/${AUDIT_NAME}_vulns.json') as f:
-    vuln_data = json.load(f)
+# --include is optional; missing files are skipped with a warning
+# rather than aborting the whole step.
+INCLUDE_ARGS=()
+[ -f "$SCAN_IN" ] && INCLUDE_ARGS+=("--include" "$SCAN_IN")
+[ -f "$DISC_IN" ] && INCLUDE_ARGS+=("--include" "$DISC_IN")
 
-generator.generate_report(
-    vuln_data,
-    report_type='full',
-    formats=['html', 'csv', 'txt', 'json'],
-    report_name='$AUDIT_NAME'
-)
+if python3 -m tools.report_builder.cli "$VULN_IN" \
+        "${INCLUDE_ARGS[@]}" \
+        --output-dir "$REPORT_DIR" \
+        --report-type full \
+        --formats html,csv,txt,json \
+        --name "${AUDIT_NAME:-scan}"; then
+    print_success "Reports generated"
+else
+    rc=$?
+    case $rc in
+        3) print_warn  "Reports generated with some formats missing" ;;
+        *) print_error "Report generation failed (rc=$rc)";;
+    esac
+fi
 
-print('Reports generated')
-"
-
-print_success "Reports generated"
-beep 3
+echo ""
 
 echo ""
 

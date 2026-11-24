@@ -11,7 +11,7 @@ from datetime import datetime
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from core.file_manager import FileManager
-from core.validator import is_valid_cidr, is_private_ip
+from core.validator import is_valid_cidr, is_private_ip, is_valid_ip
 from core.logger import get_logger
 from core.notifier import Notifier
 from core.exceptions import ScanError, ValidationError
@@ -59,6 +59,9 @@ class ARPScanner:
         if not self.scapy_available:
             raise ScanError("scapy not installed", target=network, tool="arp_scanner")
         
+        if is_valid_ip(network):
+            network = network + "/32"
+
         if not is_valid_cidr(network):
             raise ValidationError(f"Invalid network: {network}", field="network", value=network)
         

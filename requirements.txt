@@ -5,6 +5,7 @@
 # Network Scanning
 python-nmap==0.7.1
 python-whois==0.8.0
+scapy==2.8.0
 
 # DNS Operations
 dnspython==2.4.2

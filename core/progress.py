@@ -52,10 +52,11 @@ except ImportError:
 # Bar
 # ===========================================================================
 class _Bar:
-    def __init__(self, total: int = 100, desc: str = "", unit: str = "it"):
+    def __init__(self, total: int = 100, desc: str = "", unit: str = "it", complete_on_exit: bool = True):
         self.total = total
         self.desc = desc
         self.unit = unit
+        self.complete_on_exit = complete_on_exit
         self._rich_progress = None
         self._rich_task = None
         self._tqdm = None
@@ -93,7 +94,21 @@ class _Bar:
             self._draw_ansi()
         return self
 
-    def __exit__(self, *exc):
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # Subprocesses like nmap stop emitting % before they finish
+        # (it freezes at ~66% once <3 tasks remain).  If the with-block
+        # exited cleanly, snap the bar to 100% so the final frame is
+        # honest.  We skip the snap on exceptions — including the
+        # GeneratorExit raised when a consumer breaks out of
+        # `for x in track(...)` early — so failures show the truth.
+
+        if self.complete_on_exit and exc_type is None and self._on:
+            try:
+                self.update(self.total)
+            except Exception:
+                pass
+
+        #------ existing cleanup () ------------------------------
         if self._rich_progress:
             self._rich_progress.stop()
         if self._tqdm:
@@ -101,6 +116,8 @@ class _Bar:
         if _BACKEND == "ansi" and self._on:
             sys.stderr.write("\n")
             sys.stderr.flush()
+
+        return False
 
     # --- updates -----------------------------------------------------------
     def update(self, current: float):
@@ -280,6 +297,10 @@ from core.progress import spinner
 
 with spinner("Building HTML report..."):
     generator.generate_from_file(scan_file, ...)
+
+
+
+
 Pattern D — subprocess that emits percentages
 This is the nmap case, but it works identically for masscan, ffuf, gobuster, feroxbuster, nuclei, hydra, nikto, sqlmap — anything that writes NN% to stdout/stderr.
 

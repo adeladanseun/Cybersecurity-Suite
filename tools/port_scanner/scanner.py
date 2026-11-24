@@ -235,7 +235,7 @@ class PortScanner:
             raise ScanError(str(e), target=target, tool="port_scanner")
     
     def _build_nmap_command(self, target, scan_type, ports, timing,
-                           service_detection, script_scan, ping_first, sudo):
+                           service_detection, script_scan, ping_first, sudo, open_only=False):
         """Build nmap command from parameters."""
         cmd = []
 
@@ -292,13 +292,15 @@ class PortScanner:
             cmd.append('-Pn')
 
         # Additional flags
-        stats_interval = "0.1s" if (ports in (None, "top-1000", "top-100")) else "2s"
+        stats_interval = "1s" if (ports in (None, "top-1000", "top-100")) else "10s"
         cmd.extend([
-            '--open',           # Only show open ports
             '--stats-every', stats_interval,  # Progress updates
             '-n',               # No DNS resolution (faster)
             '--min-rate', '1000' # Minimum packet rate
         ])
+
+        if open_only:
+            cmd.append('--open') #Only show open ports
 
         # Target
         cmd.append(target)
@@ -415,65 +417,6 @@ class PortScanner:
     def is_tool_available(self):
         """Check if scanning tools are available."""
         return os.path.exists(self.nmap_path)
-
-
-# ----------------------------------------------------------------------------
-# CLI entry point
-# ----------------------------------------------------------------------------
-def _cli():
-    import argparse
-
-    p = argparse.ArgumentParser(prog="port_scanner")
-    p.add_argument("targets",
-                   help="File with one target per line, or a single target")
-    p.add_argument("--scan-type", default="quick",
-                   choices=["quick", "full", "tcp", "udp", "both"])
-    p.add_argument("--ports", default=None)
-    p.add_argument("--timing", default="T4",
-                   choices=["T0", "T1", "T2", "T3", "T4", "T5"])
-    p.add_argument("--output-dir", "--output", dest="output_dir",
-                   default="data/intermediate")
-    p.add_argument("--sudo", action="store_true")
-    p.add_argument("--script-scan", action="store_true")
-    p.add_argument("--no-service", action="store_true")
-
-    args = p.parse_args()
-
-    if os.path.isfile(args.targets):
-        targets = []
-        with open(args.targets) as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith("#"):
-                    targets.append(line)
-    else:
-        targets = [args.targets]
-
-    if not targets:
-        print("ERROR: no targets", file=sys.stderr)
-        return 2
-
-    if args.scan_type == "quick":
-        st, ports, svc, scr = "tcp", args.ports or "top-1000", False, False
-    elif args.scan_type == "full":
-        st, ports, svc, scr = "tcp", args.ports or "1-65535", True, True
-    else:
-        st, ports, svc, scr = args.scan_type, args.ports, not args.no_service, args.script_scan
-
-    scanner = PortScanner(output_dir=args.output_dir)
-    ok = failed = 0
-    for i, t in enumerate(targets, 1):
-        print(f"[*] ({i}/{len(targets)}) {t}", file=sys.stderr)
-        try:
-            scanner.scan(t, scan_type=st, ports=ports, timing=args.timing,
-                         service_detection=svc, script_scan=scr,
-                         ping_first=True, sudo=args.sudo)
-            ok += 1
-        except Exception as e:
-            print(f"[!] {t}: {e}", file=sys.stderr)
-            failed += 1
-    print(f"[+] {ok} ok, {failed} failed", file=sys.stderr)
-    return 0 if ok else 1
 
 
 if __name__ == "__main__":

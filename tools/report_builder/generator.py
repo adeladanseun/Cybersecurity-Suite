@@ -6,6 +6,7 @@ Produces HTML, PDF, CSV, TXT, and JSON reports from scan data
 import os
 import sys
 import json
+import shutil
 from datetime import datetime
 from pathlib import Path
 
@@ -49,6 +50,15 @@ class ReportGenerator:
         # Ensure output directories exist
         for subdir in ['html', 'pdf', 'csv', 'txt', 'json']:
             self.fm.ensure_dir(os.path.join(self.output_dir, subdir))
+
+                # Copy template assets next to the generated HTML so that
+        # <link rel="stylesheet" href="assets/style.css"> resolves.
+        src_assets = os.path.join(self.template_dir, "assets")
+        if os.path.isdir(src_assets):
+            dst_assets = os.path.join(self.output_dir, "html", "assets")
+            if os.path.isdir(dst_assets):
+                shutil.rmtree(dst_assets)
+            shutil.copytree(src_assets, dst_assets)
     
     def generate_report(self, data, report_type='full', formats=None, 
                        report_name=None):
@@ -96,22 +106,21 @@ class ReportGenerator:
             raise
     
     def _generate_html(self, data, report_type, name):
-        """Generate HTML report."""
+        """Generate HTML report, preferring a template if one exists."""
         output_path = os.path.join(self.output_dir, 'html', f"{name}.html")
-        
-        # Get template
-        template_file = os.path.join(self.template_dir, f"{report_type}.html")
 
-        if not os.path.exists(template_file):
-            template_file = os.path.join(self.template_dir, "base.html")
-        
-        if not os.path.exists(template_file):
-            # Generate basic HTML without template
+        # Prefer <report_type>.html, then full.html, then built-in HTML.
+        candidates = [
+            os.path.join(self.template_dir, f"{report_type}.html"),
+            os.path.join(self.template_dir, "full.html"),
+        ]
+        template_file = next((p for p in candidates if os.path.exists(p)), None)
+
+        if template_file is None:
             html_content = self._generate_basic_html(data, report_type)
         else:
-            # Use template if available
             html_content = self._render_template(template_file, data, report_type)
-                
+
         self.fm.write_file(output_path, html_content)
         return output_path
     
@@ -395,32 +404,60 @@ class ReportGenerator:
         return html
     
     def _render_template(self, template_file, data, report_type):
-        """Render HTML using Jinja2 template if available."""
+        """
+        Render an HTML template with Jinja2.
+
+        Uses Environment + FileSystemLoader so that base.html, partials,
+        and macros can be imported/extends-ed from any report type.
+        Falls back to _generate_basic_html on any failure (missing Jinja2,
+        missing template, template syntax error, render-time exception).
+        """
         try:
-            from jinja2 import Template
-            
-            with open(template_file, 'r') as f:
-                template_content = f.read()
-            
-            template = Template(template_content)
-            #with spinner(f"Building {report_type} report"): if slow
-            # Prepare template data
-            template_data = {
-                'report_type': report_type,
-                'generated_at': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                'data': data,
-                'findings': self._extract_findings(data),
-                'summary': data.get('summary', {}),
-                'ports': data.get('ports', []),
-                'hosts': data.get('hosts', []),
-                'scan_metadata': data.get('scan_metadata', {}),
-                'risk_score': self._calculate_overall_risk(data)
-            }
-            
-            return template.render(**template_data)
-            
+            from jinja2 import Environment, FileSystemLoader
         except ImportError:
             self.logger.debug("Jinja2 not available, using basic HTML")
+            return self._generate_basic_html(data, report_type)
+
+        try:
+            env = Environment(
+                loader=FileSystemLoader(self.template_dir),
+                autoescape=True,        # escape findings/ports HTML — XSS-safe
+                trim_blocks=True,       # {% %} tags don't leave blank lines
+                lstrip_blocks=True,     # indent block tags cleanly
+                keep_trailing_newline=True,
+            )
+
+            # Custom filters used by the templates
+            env.filters['severity_class'] = \
+                lambda s: (s or 'info').lower()
+            env.filters['fmt_duration'] = \
+                lambda d: f"{float(d or 0):.2f}"
+            env.filters['fmt_risk'] = \
+                lambda s: f"{float(s or 0):.1f}"
+
+            template = env.get_template(os.path.basename(template_file))
+
+            findings = self._extract_findings(data)
+            template_data = {
+                'report_type':     report_type,
+                'generated_at':    datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'generated_iso':   datetime.now().isoformat(),
+                'data':            data,
+                'findings':        findings,
+                'severity_counts': self._severity_counts(findings),
+                'summary':         data.get('summary', {}),
+                'ports':           data.get('ports', []),
+                'hosts':           data.get('hosts', []),
+                'scan_metadata':   data.get('scan_metadata', {}),
+                'risk_score':      self._safe_risk_score(data),
+            }
+            return template.render(**template_data)
+
+        except Exception as e:
+            self.logger.warning(
+                f"Template render failed ({template_file}): {e}; "
+                f"falling back to built-in HTML"
+            )
             return self._generate_basic_html(data, report_type)
     
     def _extract_findings(self, data):
@@ -456,6 +493,44 @@ class ReportGenerator:
         calculator = RiskCalculator()
         return calculator.calculate_risk_score(data)
     
+    def _safe_risk_score(self, data):
+        """Risk score that never raises, always a dict for the templates."""
+        default = {
+            "score":   0,
+            "level":   "info",
+            "summary": "Risk score unavailable for this scan.",
+            "factors": [],
+        }
+        try:
+            rs = self._calculate_overall_risk(data)
+        except Exception as e:
+            self.logger.debug(f"risk score unavailable: {e}")
+            return default
+
+        if isinstance(rs, dict):
+            merged = dict(default)
+            merged.update({k: v for k, v in rs.items() if v is not None})
+            return merged
+
+        if hasattr(rs, "score"):
+            return {
+                "score":   getattr(rs, "score", 0) or 0,
+                "level":   getattr(rs, "level", "info") or "info",
+                "summary": getattr(rs, "summary", "") or "",
+                "factors": getattr(rs, "factors", []) or [],
+            }
+
+        try:
+            return {**default, "score": float(rs or 0)}
+        except (TypeError, ValueError):
+            return default
+
+    def _severity_counts(self, findings):
+        """Count findings by severity — used by the executive template."""
+        from collections import Counter
+        return Counter((f.get('severity') or 'info').lower()
+                       for f in findings)
+
     def generate_from_file(self, input_file, **kwargs):
         """Generate report from JSON scan file."""
         data = self.fm.read_json(input_file)

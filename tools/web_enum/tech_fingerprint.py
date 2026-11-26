@@ -8,10 +8,10 @@ import sys
 import re
 from datetime import datetime
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+#sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from core.file_manager import FileManager
-from core.validator import is_valid_url
+from core.validator import *
 from core.logger import get_logger
 from core.notifier import Notifier
 from core.exceptions import ValidationError, ScanError

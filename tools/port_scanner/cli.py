@@ -69,6 +69,7 @@ def _cli(argv=None):
             "targets":     targets,
             "mode":        mode,
             "timestamp":   datetime.now().isoformat(),
+            "duration": 0.0,
         },
         "ports":   [],
         "hosts":   [],
@@ -76,6 +77,7 @@ def _cli(argv=None):
         "summary": {"total_open_ports": 0},
     }
 
+    wall_start = datetime.now()
     ok = failed = 0
     for i, t in enumerate(targets, 1):
         print(f"[*] ({i}/{len(targets)}) {t}", file=sys.stderr)
@@ -83,6 +85,13 @@ def _cli(argv=None):
             r = scanner.scan(t, scan_type=st, ports=ports, timing=args.timing,
                              service_detection=svc, script_scan=scr,
                              ping_first=True, sudo=args.sudo)
+            meta = r.get("scan_metadata") or {}
+            _dur = meta.get("duration") or 0.0
+            combined["scan_metadata"]["duration"] += _dur
+            combined["scan_metadata"]["duration_sum"] = \
+                combined["scan_metadata"].get("duration_sum", 0.0) + _dur
+
+            combined["scan_metadata"]["duration"] += meta.get("duration") or 0.0
             combined["ports"].extend(r.get("ports", []))
             combined["hosts"].extend(r.get("hosts", []))
             combined["summary"]["total_open_ports"] += \
@@ -94,6 +103,15 @@ def _cli(argv=None):
             print(f"  [!] {t}: {e}", file=sys.stderr)
             combined["errors"].append({"target": t, "error": str(e)})
             failed += 1
+
+    # Wall-clock total (includes setup, JSON writes, etc.) is a more
+    # honest "how long did this audit take" number than the sum of
+    # per-scan nmap times.  Record both: `duration` = wall, and
+    # `total_scan_time` = summed nmap time.
+    combined["scan_metadata"]["duration"] = \
+        (datetime.now() - wall_start).total_seconds()
+    combined["scan_metadata"]["total_scan_time"] = \
+        round(combined["scan_metadata"].pop("duration_sum", 0.0), 2)
 
     # ── write combined JSON ───────────────────────────────────────────
     combined_path = args.combined_output

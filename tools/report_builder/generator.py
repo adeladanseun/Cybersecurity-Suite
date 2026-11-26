@@ -101,6 +101,7 @@ class ReportGenerator:
         
         # Get template
         template_file = os.path.join(self.template_dir, f"{report_type}.html")
+
         if not os.path.exists(template_file):
             template_file = os.path.join(self.template_dir, "base.html")
         
@@ -110,7 +111,7 @@ class ReportGenerator:
         else:
             # Use template if available
             html_content = self._render_template(template_file, data, report_type)
-        
+                
         self.fm.write_file(output_path, html_content)
         return output_path
     

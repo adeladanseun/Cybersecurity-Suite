@@ -8,11 +8,13 @@ import json
 import threading
 from datetime import datetime, timedelta
 from pathlib import Path
+from scans.models import Scan
+from results.models import PortResult, ScanResult, VulnerabilityResult
 
 # Add parent directory to path for core modules
-parent_dir = Path(__file__).resolve().parent.parent.parent
-if str(parent_dir) not in sys.path:
-    sys.path.insert(0, str(parent_dir))
+# parent_dir = Path(__file__).resolve().parent.parent.parent
+# if str(parent_dir) not in sys.path:
+#     sys.path.insert(0, str(parent_dir))
 
 from django.utils import timezone
 from django.conf import settings
@@ -54,7 +56,6 @@ class ScanService:
     @classmethod
     def _run_scan(cls, scan_id):
         """Run the actual scan"""
-        from scans.models import Scan
 
         try:
             scan = Scan.objects.get(id=scan_id)
@@ -461,7 +462,6 @@ class ScanService:
     def _process_results_to_db(cls, scan, results):
         """Process scan results and save to database."""
         try:
-            from results.models import PortResult, ScanResult, VulnerabilityResult
 
             # Process ports
             ports = results.get("ports", [])

@@ -62,3 +62,4 @@ class Command(BaseCommand):
         self.stdout.write(f'Deleted {report_count} old reports')
         
         self.stdout.write(self.style.SUCCESS('Cleanup complete!'))
+

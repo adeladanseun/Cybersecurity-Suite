@@ -45,7 +45,7 @@ def _cli(argv=None) -> int:
             continue
         for k, v in extra.items():
             # Only fill keys the primary is missing or has empty
-            if k not in data or data[k] in (None, [], {}, ""):
+            if k not in data or data.get(k) in (None, [], {}, ""):
                 data[k] = v
 
     # ── resolve formats & name ─────────────────────────────────────────
